@@ -1,0 +1,1600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SoundWave Studio - Professional Audio Remix Editor</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-bg: #0d1117;
+            --secondary-bg: #161b22;
+            --tertiary-bg: #21262d;
+            --accent-blue: #58a6ff;
+            --accent-purple: #a855f7;
+            --accent-green: #3fb950;
+            --accent-orange: #f78166;
+            --accent-red: #ff4444;
+            --text-primary: #f0f6fc;
+            --text-secondary: #8b949e;
+            --border-color: #30363d;
+            --shadow: rgba(0, 0, 0, 0.4);
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--primary-bg);
+            color: var(--text-primary);
+            overflow-x: auto;
+            line-height: 1.6;
+            height: 100vh;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--secondary-bg) 0%, var(--tertiary-bg) 100%);
+            padding: 1rem 2rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 8px var(--shadow);
+            position: relative;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .logo-icon {
+            font-size: 1.8rem;
+            animation: pulse 2s infinite;
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            color: white;
+        }
+
+        .btn-secondary {
+            background: var(--tertiary-bg);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px var(--shadow);
+            filter: brightness(1.1);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 6px var(--shadow);
+        }
+
+        .btn.active {
+            background: linear-gradient(135deg, var(--accent-green), #2ea043);
+            box-shadow: 0 0 15px rgba(63, 185, 80, 0.4);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, var(--accent-red), #ff3333);
+            color: white;
+        }
+
+        .main-container {
+            display: flex;
+            height: calc(100vh - 80px);
+        }
+
+        .sidebar {
+            width: 300px;
+            background: linear-gradient(180deg, var(--secondary-bg), var(--tertiary-bg));
+            border-right: 1px solid var(--border-color);
+            padding: 1rem;
+            overflow-y: auto;
+            box-shadow: 2px 0 8px var(--shadow);
+            position: relative;
+            z-index: 10;
+        }
+
+        .sidebar::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .sidebar::-webkit-scrollbar-track {
+            background: var(--tertiary-bg);
+            border-radius: 3px;
+        }
+
+        .sidebar::-webkit-scrollbar-thumb {
+            background: var(--accent-blue);
+            border-radius: 3px;
+        }
+
+        .sidebar::-webkit-scrollbar-thumb:hover {
+            background: var(--accent-purple);
+        }
+
+        .section {
+            margin-bottom: 2rem;
+        }
+
+        .section-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .sample-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.5rem;
+        }
+
+        .sample-pad {
+            background: var(--tertiary-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            cursor: grab;
+            transition: all 0.2s ease;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .sample-pad:hover {
+            background: var(--border-color);
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 6px 20px var(--shadow);
+            border: 1px solid var(--accent-blue);
+        }
+
+        .sample-pad:active {
+            cursor: grabbing;
+            transform: translateY(-1px) scale(0.98);
+        }
+
+        .sample-pad.dragging {
+            opacity: 0.8;
+            transform: rotate(5deg) scale(1.05);
+            z-index: 1000;
+        }
+
+        .sample-pad.playing {
+            background: linear-gradient(135deg, var(--accent-green), #2ea043);
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+
+        .sample-name {
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+
+        .sample-info {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .workspace {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .transport-bar {
+            background: linear-gradient(135deg, var(--secondary-bg), var(--tertiary-bg));
+            padding: 1rem 2rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+            box-shadow: 0 2px 8px var(--shadow);
+            z-index: 5;
+        }
+
+        .transport-controls {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .bpm-control {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .bpm-input {
+            width: 60px;
+            padding: 0.25rem 0.5rem;
+            background: var(--tertiary-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            color: var(--text-primary);
+            text-align: center;
+            transition: all 0.2s ease;
+        }
+
+        .bpm-input:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 8px rgba(88, 166, 255, 0.3);
+        }
+
+        .bpm-input:hover {
+            border-color: var(--accent-blue);
+        }
+
+        .timeline-container {
+            flex: 1;
+            background: var(--primary-bg);
+            position: relative;
+            overflow: auto;
+            display: flex;
+        }
+
+        .timeline {
+            min-height: 100%;
+            position: relative;
+            background-image: 
+                linear-gradient(90deg, var(--border-color) 1px, transparent 1px),
+                linear-gradient(var(--border-color) 1px, transparent 1px);
+            background-size: 50px 50px;
+            padding: 2rem;
+            flex: 1;
+        }
+
+        .timeline-ruler {
+            height: 30px;
+            background: linear-gradient(135deg, var(--secondary-bg), var(--tertiary-bg));
+            border-bottom: 1px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            padding: 0 2rem;
+            box-shadow: 0 2px 4px var(--shadow);
+        }
+
+        .time-marker {
+            position: absolute;
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .track {
+            height: 100px;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, var(--secondary-bg), var(--tertiary-bg));
+            border-radius: 8px;
+            position: relative;
+            border: 2px dashed transparent;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .track:hover {
+            background: linear-gradient(135deg, var(--tertiary-bg), var(--secondary-bg));
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .track.drag-over {
+            border-color: var(--accent-blue);
+            background: rgba(88, 166, 255, 0.1);
+            animation: pulse-border 1s infinite;
+        }
+
+        @keyframes pulse-border {
+            0%, 100% { border-color: var(--accent-blue); }
+            50% { border-color: var(--accent-purple); }
+        }
+
+        .track-label {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            font-weight: 500;
+            color: var(--text-secondary);
+            z-index: 1;
+        }
+
+        .audio-clip {
+            position: absolute;
+            height: 80px;
+            top: 10px;
+            background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
+            border-radius: 6px;
+            cursor: move;
+            display: flex;
+            align-items: center;
+            padding: 0 1rem;
+            color: white;
+            font-weight: 500;
+            box-shadow: 0 2px 8px var(--shadow);
+            transition: all 0.2s ease;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            z-index: 2;
+        }
+
+        .audio-clip:hover {
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 8px 25px var(--shadow);
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+
+        .audio-clip:active {
+            transform: translateY(-1px) scale(0.98);
+            cursor: grabbing;
+        }
+
+        .audio-clip.selected {
+            border-color: var(--accent-orange);
+            box-shadow: 0 0 20px rgba(247, 129, 102, 0.5);
+        }
+
+        .audio-clip.resizing {
+            cursor: ew-resize;
+        }
+
+        .resize-handle {
+            position: absolute;
+            top: 0;
+            width: 8px;
+            height: 100%;
+            cursor: ew-resize;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.3));
+        }
+
+        .resize-handle.left {
+            left: 0;
+            border-radius: 6px 0 0 6px;
+        }
+
+        .resize-handle.right {
+            right: 0;
+            border-radius: 0 6px 6px 0;
+        }
+
+        .audio-clip:hover .resize-handle {
+            opacity: 1;
+        }
+
+        .audio-clip.playing {
+            animation: glow 1s infinite alternate;
+        }
+
+        @keyframes glow {
+            0% { box-shadow: 0 2px 8px var(--shadow); }
+            100% { box-shadow: 0 4px 20px var(--accent-blue); }
+        }
+
+        .clip-controls {
+            position: absolute;
+            right: 0.5rem;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            gap: 0.25rem;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .audio-clip:hover .clip-controls {
+            opacity: 1;
+        }
+
+        .clip-btn {
+            width: 20px;
+            height: 20px;
+            border: none;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 0.7rem;
+        }
+
+        .mixer {
+            width: 250px;
+            background: linear-gradient(180deg, var(--secondary-bg), var(--tertiary-bg));
+            border-left: 1px solid var(--border-color);
+            padding: 1rem;
+            box-shadow: -2px 0 8px var(--shadow);
+            overflow-y: auto;
+        }
+
+        .mixer-channel {
+            background: var(--tertiary-bg);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border: 1px solid transparent;
+            transition: all 0.2s ease;
+        }
+
+        .mixer-channel:hover {
+            border-color: var(--accent-blue);
+            background: rgba(88, 166, 255, 0.05);
+            transform: translateY(-1px);
+        }
+
+        .channel-label {
+            font-weight: 500;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .fader-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .fader {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 4px;
+            height: 120px;
+            background: var(--border-color);
+            border-radius: 2px;
+            outline: none;
+            writing-mode: bt-lr;
+            -webkit-writing-mode: bt-lr;
+        }
+
+        .fader::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(88, 166, 255, 0.3);
+        }
+
+        .fader::-webkit-slider-thumb:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 15px rgba(88, 166, 255, 0.5);
+        }
+
+        .fader::-webkit-slider-thumb:active {
+            transform: scale(0.95);
+        }
+
+        .volume-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .playhead {
+            position: absolute;
+            width: 3px;
+            height: 100%;
+            background: linear-gradient(to bottom, var(--accent-orange), #ff6b35);
+            top: 0;
+            left: 0;
+            z-index: 5;
+            transition: left 0.1s linear;
+            box-shadow: 0 0 8px var(--accent-orange), 0 0 15px rgba(247, 129, 102, 0.3);
+            border-radius: 2px;
+        }
+
+        .playhead::before {
+            content: '';
+            position: absolute;
+            top: -5px;
+            left: -3px;
+            width: 0;
+            height: 0;
+            border-left: 4px solid transparent;
+            border-right: 4px solid transparent;
+            border-bottom: 8px solid var(--accent-orange);
+        }
+
+        .effects-panel {
+            background: var(--tertiary-bg);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border: 1px solid transparent;
+            transition: all 0.2s ease;
+        }
+
+        .effects-panel:hover {
+            border-color: var(--accent-purple);
+            background: rgba(168, 85, 247, 0.05);
+        }
+
+        .effect-knob {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--border-color), var(--tertiary-bg));
+            position: relative;
+            cursor: pointer;
+            margin: 0 auto 0.5rem;
+            border: 2px solid var(--border-color);
+            transition: all 0.2s ease;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .effect-knob:hover {
+            border-color: var(--accent-purple);
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3), 0 0 10px rgba(168, 85, 247, 0.3);
+            transform: scale(1.05);
+        }
+
+        .effect-knob:active {
+            transform: scale(0.95);
+        }
+
+        .knob-indicator {
+            width: 3px;
+            height: 18px;
+            background: linear-gradient(to bottom, var(--accent-purple), var(--accent-blue));
+            position: absolute;
+            top: 3px;
+            left: 50%;
+            transform-origin: bottom center;
+            transform: translateX(-50%) rotate(-90deg);
+            transition: transform 0.2s ease;
+            border-radius: 2px;
+            box-shadow: 0 0 4px rgba(168, 85, 247, 0.5);
+        }
+
+        .waveform {
+            position: absolute;
+            bottom: 5px;
+            left: 5px;
+            right: 25px;
+            height: 20px;
+            opacity: 0.6;
+        }
+
+        .waveform-bar {
+            position: absolute;
+            bottom: 0;
+            width: 2px;
+            background: rgba(255, 255, 255, 0.7);
+            transition: height 0.05s ease;
+        }
+
+        .loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(13, 17, 23, 0.95);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+        }
+
+        .loading-text {
+            color: var(--text-primary);
+            font-size: 1.2rem;
+            font-weight: 500;
+            margin-top: 1rem;
+            opacity: 0.8;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid var(--border-color);
+            border-top: 4px solid var(--accent-blue);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            box-shadow: 0 0 20px rgba(88, 166, 255, 0.3);
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 1200px) {
+            .sidebar { width: 250px; }
+            .mixer { width: 200px; }
+        }
+
+        @media (max-width: 768px) {
+            .main-container { flex-direction: column; }
+            .sidebar, .mixer { width: 100%; height: auto; }
+            .header { padding: 1rem; }
+            .controls { gap: 0.5rem; }
+        }
+
+        /* Enhanced styles */
+        .visualizer {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 100px;
+            background: rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            gap: 2px;
+            padding: 10px;
+            z-index: 1;
+        }
+
+        .visualizer-bar {
+            width: 8px;
+            background: linear-gradient(to top, var(--accent-blue), var(--accent-purple));
+            border-radius: 2px 2px 0 0;
+            transition: height 0.1s ease-out;
+        }
+
+        .ai-assistant {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(168, 85, 247, 0.1);
+            border: 1px solid var(--accent-purple);
+            border-radius: 8px;
+            padding: 10px;
+            width: 300px;
+            z-index: 20;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .ai-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .ai-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--accent-purple);
+        }
+
+        .ai-close {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .ai-message {
+            background: rgba(88, 166, 255, 0.1);
+            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 10px;
+            font-size: 0.85rem;
+            line-height: 1.4;
+        }
+
+        .ai-suggestion {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            margin-top: 10px;
+        }
+
+        .ai-suggestion-item {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+            padding: 5px 10px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .ai-suggestion-item:hover {
+            background: rgba(88, 166, 255, 0.2);
+        }
+
+        .collab-indicator {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(63, 185, 80, 0.1);
+            border: 1px solid var(--accent-green);
+            border-radius: 20px;
+            padding: 5px 10px;
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .progress-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 3px;
+            background: var(--accent-blue);
+            z-index: 10;
+        }
+
+        .recording-indicator {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 12px;
+            height: 12px;
+            background: var(--accent-red);
+            border-radius: 50%;
+            animation: recording-pulse 1s infinite;
+        }
+
+        @keyframes recording-pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.3; transform: scale(0.8); }
+        }
+
+        .notification {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--tertiary-bg);
+            border: 1px solid var(--accent-blue);
+            border-radius: 8px;
+            padding: 10px 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .notification.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .modal.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            background: var(--secondary-bg);
+            border-radius: 12px;
+            padding: 2rem;
+            width: 500px;
+            max-width: 90%;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            transform: scale(0.8);
+            transition: all 0.3s ease;
+        }
+
+        .modal.active .modal-content {
+            transform: scale(1);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 1.2rem;
+        }
+
+        .modal-body {
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .input-group {
+            margin-bottom: 1rem;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 0.5rem;
+            background: var(--tertiary-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            color: var(--text-primary);
+            transition: all 0.2s ease;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 8px rgba(88, 166, 255, 0.3);
+        }
+
+        .beat-grid {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .beat-line {
+            position: absolute;
+            top: 0;
+            width: 1px;
+            height: 100%;
+            background: rgba(88, 166, 255, 0.1);
+        }
+
+        .beat-line.strong {
+            background: rgba(88, 166, 255, 0.3);
+            width: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <div class="loading-text">Initializing SoundWave Studio...</div>
+    </div>
+
+    <div class="notification" id="notification">
+        Project saved successfully!
+    </div>
+
+    <div class="modal" id="exportModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Export Audio</h3>
+                <button class="modal-close" id="closeExportModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="input-group">
+                    <label>File Name</label>
+                    <input type="text" id="exportFileName" value="my_remix">
+                </div>
+                <div class="input-group">
+                    <label>Format</label>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn btn-secondary" style="flex:1" data-format="wav">WAV</button>
+                        <button class="btn btn-secondary" style="flex:1" data-format="mp3">MP3</button>
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label>Quality</label>
+                    <input type="range" min="64" max="320" value="192" id="qualitySlider">
+                    <div style="text-align: center; margin-top: 5px;" id="qualityValue">192 kbps</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="cancelExport">Cancel</button>
+                <button class="btn btn-primary" id="confirmExport">Export</button>
+            </div>
+        </div>
+    </div>
+
+    <header class="header">
+        <div class="logo">
+            <i class="fas fa-wave-square logo-icon"></i> SoundWave Studio
+        </div>
+        <div class="controls">
+            <button class="btn btn-secondary" id="saveProject"><i class="fas fa-save"></i> Save</button>
+            <button class="btn btn-secondary" id="loadProject"><i class="fas fa-folder-open"></i> Load</button>
+            <button class="btn btn-primary" id="exportAudio"><i class="fas fa-file-export"></i> Export</button>
+            <button class="btn btn-danger" id="aiAssistantBtn"><i class="fas fa-robot"></i> AI Assistant</button>
+        </div>
+        <div class="collab-indicator">
+            <i class="fas fa-users"></i> 3 collaborators online
+        </div>
+    </header>
+
+    <div class="main-container">
+        <aside class="sidebar">
+            <div class="section">
+                <div class="section-title"><i class="fas fa-drum"></i> Drum Samples</div>
+                <div class="sample-grid" id="drumSamples">
+                    <div class="sample-pad" data-type="kick" data-sample="kick1">
+                        <div class="sample-name">Kick</div>
+                        <div class="sample-info">808 Style</div>
+                    </div>
+                    <div class="sample-pad" data-type="snare" data-sample="snare1">
+                        <div class="sample-name">Snare</div>
+                        <div class="sample-info">Crisp</div>
+                    </div>
+                    <div class="sample-pad" data-type="hihat" data-sample="hihat1">
+                        <div class="sample-name">Hi-Hat</div>
+                        <div class="sample-info">Closed</div>
+                    </div>
+                    <div class="sample-pad" data-type="crash" data-sample="crash1">
+                        <div class="sample-name">Crash</div>
+                        <div class="sample-info">Bright</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title"><i class="fas fa-music"></i> Melodic Samples</div>
+                <div class="sample-grid" id="melodicSamples">
+                    <div class="sample-pad" data-type="bass" data-sample="bass1">
+                        <div class="sample-name">Bass</div>
+                        <div class="sample-info">Deep Sub</div>
+                    </div>
+                    <div class="sample-pad" data-type="piano" data-sample="piano1">
+                        <div class="sample-name">Piano</div>
+                        <div class="sample-info">Lo-Fi</div>
+                    </div>
+                    <div class="sample-pad" data-type="synth" data-sample="synth1">
+                        <div class="sample-name">Synth</div>
+                        <div class="sample-info">Warm Pad</div>
+                    </div>
+                    <div class="sample-pad" data-type="vocal" data-sample="vocal1">
+                        <div class="sample-name">Vocal</div>
+                        <div class="sample-info">Chops</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title"><i class="fas fa-sync-alt"></i> Loops & FX</div>
+                <div class="sample-grid" id="loopSamples">
+                    <div class="sample-pad" data-type="loop" data-sample="loop1">
+                        <div class="sample-name">Guitar</div>
+                        <div class="sample-info">Chill Loop</div>
+                    </div>
+                    <div class="sample-pad" data-type="fx" data-sample="fx1">
+                        <div class="sample-name">Reverse</div>
+                        <div class="sample-info">Cymbal</div>
+                    </div>
+                    <div class="sample-pad" data-type="ambient" data-sample="ambient1">
+                        <div class="sample-name">Rain</div>
+                        <div class="sample-info">Ambience</div>
+                    </div>
+                    <div class="sample-pad" data-type="vinyl" data-sample="vinyl1">
+                        <div class="sample-name">Vinyl</div>
+                        <div class="sample-info">Crackle</div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <main class="workspace">
+            <div class="transport-bar">
+                <div class="transport-controls">
+                    <button class="btn btn-primary" id="playBtn"><i class="fas fa-play"></i> Play</button>
+                    <button class="btn btn-secondary" id="pauseBtn"><i class="fas fa-pause"></i> Pause</button>
+                    <button class="btn btn-secondary" id="stopBtn"><i class="fas fa-stop"></i> Stop</button>
+                    <button class="btn btn-danger" id="recordBtn"><i class="fas fa-circle"></i> Record</button>
+                </div>
+                <div class="bpm-control">
+                    <label>BPM:</label>
+                    <input type="number" class="bpm-input" id="bpmInput" value="120" min="60" max="200">
+                </div>
+                <div class="position-display" id="positionDisplay">00:00</div>
+            </div>
+
+            <div class="timeline-container">
+                <div class="timeline-ruler" id="timelineRuler"></div>
+                <div class="timeline" id="timeline">
+                    <div class="beat-grid" id="beatGrid"></div>
+                    <div class="playhead" id="playhead"></div>
+                    <div class="track" data-track="0">
+                        <div class="track-label">Track 1 - Drums</div>
+                        <div class="audio-clip" style="left: 50px; width: 200px;">
+                            <div>Kick Loop</div>
+                            <div class="waveform" id="waveform1"></div>
+                        </div>
+                        <div class="audio-clip" style="left: 300px; width: 150px;">
+                            <div>Snare</div>
+                            <div class="waveform" id="waveform2"></div>
+                        </div>
+                    </div>
+                    <div class="track" data-track="1">
+                        <div class="track-label">Track 2 - Bass</div>
+                        <div class="audio-clip" style="left: 100px; width: 400px; background: linear-gradient(135deg, #3fb950, #2ea043);">
+                            <div>Deep Bass</div>
+                            <div class="waveform" id="waveform3"></div>
+                        </div>
+                    </div>
+                    <div class="track" data-track="2">
+                        <div class="track-label">Track 3 - Melody</div>
+                        <div class="audio-clip" style="left: 250px; width: 300px; background: linear-gradient(135deg, #f78166, #ff6b35);">
+                            <div>Synth Lead</div>
+                            <div class="waveform" id="waveform4"></div>
+                        </div>
+                    </div>
+                    <div class="track" data-track="3">
+                        <div class="track-label">Track 4 - FX</div>
+                        <div class="audio-clip" style="left: 600px; width: 150px; background: linear-gradient(135deg, #a855f7, #8b3dff);">
+                            <div>Reverse FX</div>
+                            <div class="waveform" id="waveform5"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="visualizer" id="visualizer"></div>
+            
+            <div class="ai-assistant" id="aiAssistant">
+                <div class="ai-header">
+                    <div class="ai-title"><i class="fas fa-robot"></i> AI Assistant</div>
+                    <button class="ai-close" id="closeAi">&times;</button>
+                </div>
+                <div class="ai-message">
+                    I've analyzed your track and have suggestions to improve your mix:
+                </div>
+                <div class="ai-suggestion">
+                    <div class="ai-suggestion-item">
+                        <i class="fas fa-lightbulb"></i> Add reverb to the vocal track for more depth
+                    </div>
+                    <div class="ai-suggestion-item">
+                        <i class="fas fa-lightbulb"></i> Reduce bass frequency around 250Hz to reduce muddiness
+                    </div>
+                    <div class="ai-suggestion-item">
+                        <i class="fas fa-lightbulb"></i> Try sidechain compression on the synth pad
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <aside class="mixer">
+            <div class="section">
+                <div class="section-title"><i class="fas fa-sliders-h"></i> Mixer</div>
+                <div class="mixer-channel">
+                    <div class="channel-label">Master</div>
+                    <div class="fader-container">
+                        <input type="range" class="fader" id="masterVolume" min="0" max="100" value="80" orient="vertical">
+                        <div class="volume-label">80</div>
+                    </div>
+                    <div class="volume-meter">
+                        <div class="volume-level" style="height: 70%;"></div>
+                    </div>
+                </div>
+                
+                <div class="mixer-channel">
+                    <div class="channel-label">Track 1</div>
+                    <div class="fader-container">
+                        <input type="range" class="fader" id="track1Volume" min="0" max="100" value="75" orient="vertical">
+                        <div class="volume-label">75</div>
+                    </div>
+                    <div class="volume-meter">
+                        <div class="volume-level" style="height: 60%;"></div>
+                    </div>
+                </div>
+
+                <div class="mixer-channel">
+                    <div class="channel-label">Track 2</div>
+                    <div class="fader-container">
+                        <input type="range" class="fader" id="track2Volume" min="0" max="100" value="75" orient="vertical">
+                        <div class="volume-label">75</div>
+                    </div>
+                    <div class="volume-meter">
+                        <div class="volume-level" style="height: 55%;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title"><i class="fas fa-wave-square"></i> Effects</div>
+                <div class="effects-panel">
+                    <div class="channel-label">Reverb</div>
+                    <div class="effect-knob" data-effect="reverb">
+                        <div class="knob-indicator" style="transform: translateX(-50%) rotate(30deg);"></div>
+                    </div>
+                    <div class="volume-label">30%</div>
+                </div>
+
+                <div class="effects-panel">
+                    <div class="channel-label">Delay</div>
+                    <div class="effect-knob" data-effect="delay">
+                        <div class="knob-indicator" style="transform: translateX(-50%) rotate(60deg);"></div>
+                    </div>
+                    <div class="volume-label">60%</div>
+                </div>
+
+                <div class="effects-panel">
+                    <div class="channel-label">Filter</div>
+                    <div class="effect-knob" data-effect="filter">
+                        <div class="knob-indicator" style="transform: translateX(-50%) rotate(120deg);"></div>
+                    </div>
+                    <div class="volume-label">75%</div>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <script>
+        class SoundWaveStudio {
+            constructor() {
+                this.audioContext = null;
+                this.masterGain = null;
+                this.isPlaying = false;
+                this.isRecording = false;
+                this.currentTime = 0;
+                this.bpm = 120;
+                this.samples = new Map();
+                this.tracks = [];
+                this.clips = [];
+                this.playhead = null;
+                this.playheadPosition = 0;
+                this.animationFrame = null;
+                this.effects = {
+                    reverb: null,
+                    delay: null,
+                    filter: null
+                };
+                this.analyser = null;
+                this.audioData = null;
+                this.lastUpdate = 0;
+                
+                this.init();
+            }
+
+            async init() {
+                try {
+                    // Initialize Web Audio API
+                    this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    this.masterGain = this.audioContext.createGain();
+                    this.masterGain.connect(this.audioContext.destination);
+                    
+                    // Create analyser for visualizer
+                    this.analyser = this.audioContext.createAnalyser();
+                    this.analyser.fftSize = 256;
+                    this.audioData = new Uint8Array(this.analyser.frequencyBinCount);
+                    this.masterGain.connect(this.analyser);
+                    
+                    // Initialize effects
+                    this.initEffects();
+                    
+                    // Setup event listeners
+                    this.setupEventListeners();
+                    
+                    // Initialize timeline
+                    this.initTimeline();
+                    
+                    // Initialize visualizer
+                    this.initVisualizer();
+                    
+                    // Create waveform visuals
+                    this.createWaveforms();
+                    
+                    // Hide loading screen after a short delay
+                    setTimeout(() => {
+                        document.getElementById('loading').style.display = 'none';
+                    }, 1500);
+                    
+                } catch (error) {
+                    console.error('Failed to initialize audio context:', error);
+                    this.showNotification('Audio initialization failed. Please ensure your browser supports Web Audio API.', 'error');
+                }
+            }
+            
+            initVisualizer() {
+                const visualizer = document.getElementById('visualizer');
+                visualizer.innerHTML = '';
+                
+                // Create 64 bars for the visualizer
+                for (let i = 0; i < 64; i++) {
+                    const bar = document.createElement('div');
+                    bar.className = 'visualizer-bar';
+                    bar.style.height = '10px';
+                    visualizer.appendChild(bar);
+                }
+                
+                // Start animation loop
+                this.animateVisualizer();
+            }
+            
+            animateVisualizer() {
+                if (this.analyser) {
+                    this.analyser.getByteFrequencyData(this.audioData);
+                    
+                    const bars = document.querySelectorAll('.visualizer-bar');
+                    for (let i = 0; i < bars.length; i++) {
+                        const value = this.audioData[i] / 255;
+                        const height = value * 80 + 5; // 5-85px height
+                        bars[i].style.height = `${height}px`;
+                        
+                        // Add color effect based on frequency
+                        const hue = 240 + (value * 120);
+                        bars[i].style.background = `linear-gradient(to top, hsl(${hue}, 100%, 60%), hsl(${hue + 30}, 100%, 50%)`;
+                    }
+                }
+                
+                requestAnimationFrame(() => this.animateVisualizer());
+            }
+            
+            createWaveforms() {
+                for (let i = 1; i <= 5; i++) {
+                    const waveform = document.getElementById(`waveform${i}`);
+                    waveform.innerHTML = '';
+                    
+                    // Create waveform bars
+                    for (let j = 0; j < 40; j++) {
+                        const bar = document.createElement('div');
+                        bar.className = 'waveform-bar';
+                        bar.style.left = `${j * 5}px`;
+                        const height = 5 + Math.random() * 15;
+                        bar.style.height = `${height}px`;
+                        waveform.appendChild(bar);
+                    }
+                }
+            }
+
+            initEffects() {
+                // This would initialize real audio effects in a real app
+                console.log("Audio effects initialized");
+            }
+
+            initTimeline() {
+                // Create beat grid
+                const beatGrid = document.getElementById('beatGrid');
+                const width = document.getElementById('timeline').scrollWidth;
+                
+                // Clear existing beat lines
+                beatGrid.innerHTML = '';
+                
+                // Create beat lines (4 beats per measure)
+                for (let i = 0; i < 32; i++) {
+                    const beatLine = document.createElement('div');
+                    beatLine.className = 'beat-line';
+                    if (i % 4 === 0) {
+                        beatLine.classList.add('strong');
+                    }
+                    beatLine.style.left = `${i * 50}px`;
+                    beatGrid.appendChild(beatLine);
+                }
+                
+                // Initialize playhead
+                this.playhead = document.getElementById('playhead');
+                this.updatePlayhead();
+            }
+            
+            updatePlayhead() {
+                if (!this.isPlaying) return;
+                
+                const now = Date.now();
+                if (now - this.lastUpdate > 50) { // Update at ~20fps
+                    this.playheadPosition += (now - this.lastUpdate) / 1000;
+                    this.lastUpdate = now;
+                    
+                    // Update playhead position (50px per second)
+                    this.playhead.style.left = `${this.playheadPosition * 50}px`;
+                    
+                    // Update time display
+                    const minutes = Math.floor(this.playheadPosition / 60);
+                    const seconds = Math.floor(this.playheadPosition % 60);
+                    document.getElementById('positionDisplay').textContent = 
+                        `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                }
+                
+                this.animationFrame = requestAnimationFrame(() => this.updatePlayhead());
+            }
+
+            setupEventListeners() {
+                // Transport controls
+                document.getElementById('playBtn').addEventListener('click', () => this.play());
+                document.getElementById('pauseBtn').addEventListener('click', () => this.pause());
+                document.getElementById('stopBtn').addEventListener('click', () => this.stop());
+                document.getElementById('recordBtn').addEventListener('click', () => this.toggleRecord());
+                
+                // BPM control
+                document.getElementById('bpmInput').addEventListener('change', (e) => {
+                    this.bpm = parseInt(e.target.value);
+                    if (this.bpm < 60) this.bpm = 60;
+                    if (this.bpm > 200) this.bpm = 200;
+                    e.target.value = this.bpm;
+                });
+                
+                // Project controls
+                document.getElementById('saveProject').addEventListener('click', () => this.saveProject());
+                document.getElementById('loadProject').addEventListener('click', () => this.loadProject());
+                document.getElementById('exportAudio').addEventListener('click', () => this.showExportModal());
+                
+                // AI Assistant
+                document.getElementById('aiAssistantBtn').addEventListener('click', () => {
+                    document.getElementById('aiAssistant').style.display = 'block';
+                });
+                
+                document.getElementById('closeAi').addEventListener('click', () => {
+                    document.getElementById('aiAssistant').style.display = 'none';
+                });
+                
+                // Export modal
+                document.getElementById('closeExportModal').addEventListener('click', () => {
+                    document.getElementById('exportModal').classList.remove('active');
+                });
+                
+                document.getElementById('cancelExport').addEventListener('click', () => {
+                    document.getElementById('exportModal').classList.remove('active');
+                });
+                
+                document.getElementById('confirmExport').addEventListener('click', () => {
+                    const fileName = document.getElementById('exportFileName').value;
+                    const format = document.querySelector('[data-format].active')?.dataset.format || 'wav';
+                    const quality = document.getElementById('qualitySlider').value;
+                    this.exportAudio(fileName, format, quality);
+                    document.getElementById('exportModal').classList.remove('active');
+                });
+                
+                document.querySelectorAll('[data-format]').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        document.querySelectorAll('[data-format]').forEach(b => b.classList.remove('active'));
+                        e.target.classList.add('active');
+                    });
+                });
+                
+                // Quality slider
+                const qualitySlider = document.getElementById('qualitySlider');
+                const qualityValue = document.getElementById('qualityValue');
+                qualitySlider.addEventListener('input', () => {
+                    qualityValue.textContent = `${qualitySlider.value} kbps`;
+                });
+                
+                // Sample pads
+                document.querySelectorAll('.sample-pad').forEach(pad => {
+                    pad.addEventListener('click', () => {
+                        pad.classList.add('playing');
+                        setTimeout(() => pad.classList.remove('playing'), 300);
+                    });
+                    
+                    // Drag and drop would be implemented here in a real app
+                });
+                
+                // Effect knobs
+                document.querySelectorAll('.effect-knob').forEach(knob => {
+                    knob.addEventListener('click', (e) => {
+                        const indicator = knob.querySelector('.knob-indicator');
+                        const currentRotation = this.getRotation(indicator);
+                        const newRotation = (currentRotation + 45) % 360;
+                        indicator.style.transform = `translateX(-50%) rotate(${newRotation}deg)`;
+                        
+                        const effect = knob.dataset.effect;
+                        const percentage = Math.round(newRotation / 3.6);
+                        knob.nextElementSibling.textContent = `${percentage}%`;
+                        
+                        console.log(`Adjusted ${effect} to ${percentage}%`);
+                    });
+                });
+                
+                // Volume faders
+                document.querySelectorAll('.fader').forEach(fader => {
+                    fader.addEventListener('input', (e) => {
+                        const label = e.target.nextElementSibling;
+                        label.textContent = e.target.value;
+                    });
+                });
+            }
+            
+            getRotation(element) {
+                const transform = element.style.transform;
+                if (!transform) return 0;
+                
+                const match = transform.match(/rotate\(([-\d.]+)deg\)/);
+                return match ? parseFloat(match[1]) : 0;
+            }
+
+            play() {
+                if (this.isPlaying) return;
+                
+                this.isPlaying = true;
+                this.lastUpdate = Date.now();
+                this.updatePlayhead();
+                
+                document.getElementById('playBtn').classList.add('active');
+                document.getElementById('pauseBtn').classList.remove('active');
+                
+                console.log("Playback started");
+            }
+
+            pause() {
+                if (!this.isPlaying) return;
+                
+                this.isPlaying = false;
+                cancelAnimationFrame(this.animationFrame);
+                
+                document.getElementById('playBtn').classList.remove('active');
+                document.getElementById('pauseBtn').classList.add('active');
+                
+                console.log("Playback paused");
+            }
+
+            stop() {
+                this.isPlaying = false;
+                cancelAnimationFrame(this.animationFrame);
+                this.playheadPosition = 0;
+                this.playhead.style.left = '0px';
+                document.getElementById('positionDisplay').textContent = '00:00';
+                
+                document.getElementById('playBtn').classList.remove('active');
+                document.getElementById('pauseBtn').classList.remove('active');
+                
+                console.log("Playback stopped");
+            }
+
+            toggleRecord() {
+                this.isRecording = !this.isRecording;
+                const recordBtn = document.getElementById('recordBtn');
+                
+                if (this.isRecording) {
+                    recordBtn.classList.add('active');
+                    recordBtn.innerHTML = '<i class="fas fa-circle"></i> Recording';
+                    
+                    // Create recording indicator
+                    const indicator = document.createElement('div');
+                    indicator.className = 'recording-indicator';
+                    recordBtn.appendChild(indicator);
+                    
+                    console.log("Recording started");
+                } else {
+                    recordBtn.classList.remove('active');
+                    recordBtn.innerHTML = '<i class="fas fa-circle"></i> Record';
+                    
+                    console.log("Recording stopped");
+                }
+            }
+
+            saveProject() {
+                // In a real app, this would save project data
+                this.showNotification('Project saved successfully!');
+                console.log("Project saved");
+            }
+
+            loadProject() {
+                // In a real app, this would load project data
+                this.showNotification('Project loaded successfully!');
+                console.log("Project loaded");
+            }
+
+            exportAudio(fileName, format, quality) {
+                // In a real app, this would export the audio
+                const message = `Exporting "${fileName}.${format}" at ${quality}kbps...`;
+                this.showNotification(message);
+                console.log(message);
+                
+                // Simulate export progress
+                let progress = 0;
+                const progressInterval = setInterval(() => {
+                    progress += 5;
+                    if (progress >= 100) {
+                        clearInterval(progressInterval);
+                        this.showNotification(`Export completed: ${fileName}.${format}`);
+                    }
+                }, 100);
+            }
+            
+            showExportModal() {
+                document.getElementById('exportModal').classList.add('active');
+            }
+
+            showNotification(message, type = 'success') {
+                const notification = document.getElementById('notification');
+                notification.textContent = message;
+                notification.classList.add('show');
+                
+                if (type === 'error') {
+                    notification.style.borderColor = 'var(--accent-red)';
+                } else {
+                    notification.style.borderColor = 'var(--accent-green)';
+                }
+                
+                setTimeout(() => {
+                    notification.classList.remove('show');
+                }, 3000);
+            }
+        }
+
+        // Initialize the app when the DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            const soundWaveStudio = new SoundWaveStudio();
+            
+            // Add some demo waveforms
+            setTimeout(() => {
+                const bars = document.querySelectorAll('.waveform-bar');
+                bars.forEach(bar => {
+                    const height = 5 + Math.random() * 15;
+                    bar.style.height = `${height}px`;
+                });
+            }, 100);
+        });
+    </script>
+</body>
+</html>
