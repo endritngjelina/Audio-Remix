@@ -1,0 +1,1766 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SoundForge Pro - Drag-to-Remix Editor</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone.js/14.8.49/Tone.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 25%, #16213e 50%, #0f3460 75%, #1a1a2e 100%);
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
+            color: #ffffff;
+            overflow-x: hidden;
+            min-height: 100vh;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 50%, rgba(0, 245, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255, 107, 157, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 80%, rgba(102, 126, 234, 0.1) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .app-container {
+            display: grid;
+            grid-template-rows: 60px 1fr 120px;
+            height: 100vh;
+            position: relative;
+        }
+
+        /* Header */
+        .header {
+            background: rgba(15, 15, 35, 0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(0, 245, 255, 0.3);
+            box-shadow: 0 4px 32px rgba(0, 245, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            z-index: 1000;
+            position: relative;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #00f5ff, #ff6b9d, #667eea, transparent);
+            animation: headerGlow 3s ease-in-out infinite alternate;
+        }
+
+        @keyframes headerGlow {
+            0% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(45deg, #00f5ff, #ff6b9d, #667eea, #00f5ff);
+            background-size: 300% 100%;
+            animation: logoGradient 4s ease infinite;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            position: relative;
+            text-shadow: 0 0 30px rgba(0, 245, 255, 0.5);
+        }
+
+        .logo::after {
+            content: '🎵 SoundForge Pro';
+            position: absolute;
+            top: 0;
+            left: 0;
+            background: linear-gradient(45deg, #00f5ff, #ff6b9d);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            filter: blur(8px);
+            opacity: 0.3;
+            z-index: -1;
+        }
+
+        @keyframes logoGradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.5s;
+        }
+
+        .btn:hover::before {
+            left: 100%;
+        }
+
+        .btn:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 15px 35px rgba(102, 126, 234, 0.6);
+            background: linear-gradient(135deg, #7c4dff 0%, #8e24aa 100%);
+        }
+
+        .btn:active {
+            transform: translateY(-1px) scale(1.02);
+            transition: all 0.1s ease;
+        }
+
+        .btn.recording {
+            background: linear-gradient(135deg, #ff4757, #ff3742);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(255, 71, 87, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(255, 71, 87, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 71, 87, 0); }
+        }
+
+        /* Main Content */
+        .main-content {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 20px;
+            padding: 20px;
+            overflow: hidden;
+        }
+
+        /* Sample Library */
+        .sample-library {
+            background: rgba(15, 15, 35, 0.9);
+            border-radius: 20px;
+            border: 1px solid rgba(0, 245, 255, 0.2);
+            backdrop-filter: blur(20px);
+            padding: 25px;
+            overflow-y: auto;
+            position: relative;
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+
+        .sample-library::before {
+            content: '';
+            position: absolute;
+            top: -1px;
+            left: -1px;
+            right: -1px;
+            bottom: -1px;
+            background: linear-gradient(45deg, #00f5ff, #ff6b9d, #667eea, #00f5ff);
+            background-size: 300% 100%;
+            animation: borderGlow 6s linear infinite;
+            border-radius: 20px;
+            z-index: -1;
+            opacity: 0.6;
+        }
+
+        @keyframes borderGlow {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 300% 50%; }
+        }
+
+        .sample-library::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .sample-library::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+        }
+
+        .sample-library::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, #00f5ff, #ff6b9d);
+            border-radius: 4px;
+        }
+
+        .sample-library::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(135deg, #ff6b9d, #00f5ff);
+        }
+
+        .library-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .sample-category {
+            margin-bottom: 20px;
+        }
+
+        .category-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #00f5ff;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .sample-item {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 15px;
+            margin-bottom: 12px;
+            cursor: grab;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            user-select: none;
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+
+        .sample-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0, 245, 255, 0.2), transparent);
+            transition: left 0.6s ease;
+        }
+
+        .sample-item::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(0, 245, 255, 0.1), rgba(255, 107, 157, 0.1));
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            border-radius: 15px;
+        }
+
+        .sample-item:hover::before {
+            left: 100%;
+        }
+
+        .sample-item:hover::after {
+            opacity: 1;
+        }
+
+        .sample-item:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateX(8px) translateY(-2px);
+            box-shadow: 
+                0 10px 25px rgba(0, 245, 255, 0.3),
+                0 0 30px rgba(0, 245, 255, 0.2);
+            border-color: rgba(0, 245, 255, 0.5);
+        }
+
+        .sample-item:active {
+            cursor: grabbing;
+            transform: scale(0.98) translateX(8px);
+            box-shadow: 0 5px 15px rgba(0, 245, 255, 0.4);
+        }
+
+        .sample-name {
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .sample-duration {
+            font-size: 12px;
+            color: #888;
+        }
+
+        /* Timeline Area */
+        .timeline-area {
+            background: rgba(15, 15, 35, 0.9);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 107, 157, 0.2);
+            backdrop-filter: blur(20px);
+            padding: 25px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+
+        .timeline-area::before {
+            content: '';
+            position: absolute;
+            top: -1px;
+            left: -1px;
+            right: -1px;
+            bottom: -1px;
+            background: linear-gradient(45deg, #ff6b9d, #667eea, #00f5ff, #ff6b9d);
+            background-size: 300% 100%;
+            animation: borderGlow 8s linear infinite;
+            border-radius: 20px;
+            z-index: -1;
+            opacity: 0.4;
+        }
+
+        .timeline-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .timeline-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .timeline-controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .control-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 10px 16px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            font-size: 12px;
+            font-weight: 500;
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+
+        .control-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.4s ease;
+        }
+
+        .control-btn:hover::before {
+            left: 100%;
+        }
+
+        .control-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px) scale(1.05);
+            box-shadow: 0 8px 20px rgba(0, 245, 255, 0.3);
+            border-color: rgba(0, 245, 255, 0.5);
+        }
+
+        .control-btn:active {
+            transform: translateY(0) scale(1.02);
+            transition: all 0.1s ease;
+        }
+
+        .timeline-ruler {
+            background: rgba(255, 255, 255, 0.05);
+            height: 30px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .ruler-marks {
+            display: flex;
+            height: 100%;
+            position: relative;
+        }
+
+        .ruler-mark {
+            flex: 1;
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            color: #888;
+        }
+
+        .playhead {
+            position: absolute;
+            top: 0;
+            width: 2px;
+            height: 100%;
+            background: #ff6b9d;
+            transition: left 0.1s ease;
+            z-index: 100;
+        }
+
+        .tracks-container {
+            flex: 1;
+            min-height: 300px;
+            position: relative;
+        }
+
+        .track {
+            background: rgba(255, 255, 255, 0.03);
+            border: 2px dashed rgba(255, 255, 255, 0.15);
+            border-radius: 15px;
+            height: 85px;
+            margin-bottom: 18px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            backdrop-filter: blur(5px);
+            overflow: hidden;
+        }
+
+        .track::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, rgba(0, 245, 255, 0.05), rgba(255, 107, 157, 0.05));
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            border-radius: 13px;
+        }
+
+        .track:hover::before, .track.drag-over::before {
+            opacity: 1;
+        }
+
+        .track:hover, .track.drag-over {
+            border-color: #00f5ff;
+            background: rgba(0, 245, 255, 0.08);
+            box-shadow: 
+                0 0 30px rgba(0, 245, 255, 0.3),
+                inset 0 0 20px rgba(0, 245, 255, 0.1);
+            transform: scale(1.02);
+        }
+
+        .track-label {
+            position: absolute;
+            left: 15px;
+            font-size: 13px;
+            color: #999;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .audio-clip {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            height: 65px;
+            position: absolute;
+            top: 10px;
+            cursor: move;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 18px;
+            color: white;
+            font-weight: 600;
+            box-shadow: 
+                0 6px 20px rgba(0, 0, 0, 0.4),
+                0 0 15px rgba(102, 126, 234, 0.3);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .audio-clip::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, 
+                rgba(255,255,255,0.1) 25%, 
+                transparent 25%, 
+                transparent 50%, 
+                rgba(255,255,255,0.1) 50%, 
+                rgba(255,255,255,0.1) 75%, 
+                transparent 75%
+            );
+            background-size: 8px 8px;
+            animation: waveform 2s linear infinite;
+            opacity: 0.3;
+        }
+
+        @keyframes waveform {
+            0% { background-position: 0 0; }
+            100% { background-position: 8px 8px; }
+        }
+
+        .audio-clip::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.6s ease;
+        }
+
+        .audio-clip:hover::after {
+            left: 100%;
+        }
+
+        .audio-clip:hover {
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 
+                0 10px 30px rgba(0, 0, 0, 0.5),
+                0 0 25px rgba(102, 126, 234, 0.5);
+            background: linear-gradient(135deg, #7c4dff 0%, #8e24aa 100%);
+        }
+
+        .audio-clip:active {
+            cursor: grabbing;
+            transform: scale(0.98);
+            transition: all 0.1s ease;
+        }
+
+        .clip-name {
+            font-size: 12px;
+            z-index: 1;
+        }
+
+        .clip-controls {
+            display: flex;
+            gap: 5px;
+            z-index: 1;
+        }
+
+        .clip-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            border-radius: 3px;
+            width: 20px;
+            height: 20px;
+            color: white;
+            cursor: pointer;
+            font-size: 10px;
+            transition: all 0.2s ease;
+        }
+
+        .clip-btn:hover {
+            background: rgba(255, 255, 255, 0.4);
+        }
+
+        /* Transport Controls */
+        .transport-controls {
+            background: rgba(15, 15, 35, 0.95);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(0, 245, 255, 0.3);
+            box-shadow: 0 -4px 32px rgba(0, 245, 255, 0.1);
+            padding: 25px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 25px;
+            position: relative;
+        }
+
+        .transport-controls::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #00f5ff, #ff6b9d, #667eea, transparent);
+            animation: headerGlow 4s ease-in-out infinite alternate;
+        }
+
+        .transport-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 50%;
+            width: 65px;
+            height: 65px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            box-shadow: 
+                0 6px 20px rgba(0, 0, 0, 0.3),
+                0 0 15px rgba(102, 126, 234, 0.4);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .transport-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, transparent 70%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .transport-btn:hover::before {
+            opacity: 1;
+        }
+
+        .transport-btn:hover {
+            transform: translateY(-4px) scale(1.08);
+            box-shadow: 
+                0 12px 35px rgba(102, 126, 234, 0.5),
+                0 0 25px rgba(102, 126, 234, 0.6);
+            background: linear-gradient(135deg, #7c4dff 0%, #8e24aa 100%);
+        }
+
+        .transport-btn:active {
+            transform: translateY(-2px) scale(1.05);
+            transition: all 0.1s ease;
+        }
+
+        .transport-btn.play {
+            width: 85px;
+            height: 85px;
+            background: linear-gradient(135deg, #00f5ff 0%, #ff6b9d 100%);
+            box-shadow: 
+                0 8px 30px rgba(0, 245, 255, 0.4),
+                0 0 20px rgba(255, 107, 157, 0.4);
+            font-size: 28px;
+        }
+
+        .transport-btn.play:hover {
+            transform: translateY(-5px) scale(1.1);
+            box-shadow: 
+                0 15px 40px rgba(0, 245, 255, 0.6),
+                0 0 30px rgba(255, 107, 157, 0.6);
+        }
+
+        .volume-control {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-left: 40px;
+            padding: 15px 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .volume-slider {
+            width: 120px;
+            height: 6px;
+            border-radius: 3px;
+            background: linear-gradient(90deg, rgba(255, 255, 255, 0.2) 0%, rgba(0, 245, 255, 0.3) 100%);
+            outline: none;
+            cursor: pointer;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        .volume-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #00f5ff, #ff6b9d);
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0, 245, 255, 0.4);
+            transition: all 0.3s ease;
+        }
+
+        .volume-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+            box-shadow: 0 4px 15px rgba(0, 245, 255, 0.6);
+        }
+
+        .bpm-display {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 15px 20px;
+            margin-left: 40px;
+            font-weight: 700;
+            font-size: 16px;
+            border: 1px solid rgba(0, 245, 255, 0.3);
+            box-shadow: 0 4px 15px rgba(0, 245, 255, 0.2);
+            backdrop-filter: blur(10px);
+            color: #00f5ff;
+            text-shadow: 0 0 10px rgba(0, 245, 255, 0.5);
+        }
+
+        /* Effects Panel */
+        .effects-panel {
+            position: absolute;
+            top: 80px;
+            right: 20px;
+            width: 280px;
+            background: rgba(15, 15, 35, 0.95);
+            border-radius: 20px;
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            backdrop-filter: blur(20px);
+            padding: 25px;
+            transform: translateX(110%);
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 500;
+            box-shadow: 
+                0 10px 40px rgba(0, 0, 0, 0.4),
+                0 0 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .effects-panel::before {
+            content: '';
+            position: absolute;
+            top: -1px;
+            left: -1px;
+            right: -1px;
+            bottom: -1px;
+            background: linear-gradient(45deg, #667eea, #764ba2, #667eea);
+            background-size: 300% 100%;
+            animation: borderGlow 4s linear infinite;
+            border-radius: 20px;
+            z-index: -1;
+            opacity: 0.6;
+        }
+
+        .effects-panel.open {
+            transform: translateX(0);
+        }
+
+        .effects-panel h3 {
+            color: #667eea;
+            margin-bottom: 25px;
+            font-size: 20px;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .effect-control {
+            margin-bottom: 25px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .effect-control:hover {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(102, 126, 234, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .effect-label {
+            font-size: 13px;
+            color: #ccc;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            font-weight: 600;
+        }
+
+        .effect-slider {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: linear-gradient(90deg, rgba(255, 255, 255, 0.2) 0%, rgba(102, 126, 234, 0.3) 100%);
+            outline: none;
+            cursor: pointer;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        .effect-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(102, 126, 234, 0.4);
+            transition: all 0.3s ease;
+        }
+
+        .effect-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.6);
+        }
+
+        /* Visualizer */
+        .visualizer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+            opacity: 0.3;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+            .main-content {
+                grid-template-columns: 250px 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+                grid-template-rows: 200px 1fr;
+            }
+            
+            .sample-library {
+                max-height: 180px;
+            }
+            
+            .effects-panel {
+                width: 200px;
+            }
+        }
+
+        /* Loading Animation */
+        .loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            display: none;
+            z-index: 2000;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-top: 3px solid #00f5ff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Context Menu */
+        .context-menu {
+            position: fixed;
+            background: rgba(15, 15, 35, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(0, 245, 255, 0.3);
+            border-radius: 12px;
+            padding: 8px 0;
+            min-width: 140px;
+            z-index: 1000;
+            display: none;
+            box-shadow: 
+                0 10px 30px rgba(0, 0, 0, 0.4),
+                0 0 15px rgba(0, 245, 255, 0.2);
+        }
+
+        .context-menu-item {
+            padding: 12px 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 13px;
+            font-weight: 500;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .context-menu-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0, 245, 255, 0.2), transparent);
+            transition: left 0.3s ease;
+        }
+
+        .context-menu-item:hover::before {
+            left: 100%;
+        }
+
+        .context-menu-item:hover {
+            background: rgba(0, 245, 255, 0.1);
+            color: #00f5ff;
+            transform: translateX(5px);
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">🎵 SoundForge Pro</div>
+            <div class="header-controls">
+                <button class="btn" id="recordBtn">Record</button>
+                <button class="btn" id="exportBtn">Export</button>
+                <button class="btn" id="effectsBtn">Effects</button>
+                <button class="btn" id="helpBtn">Help</button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Sample Library -->
+            <aside class="sample-library">
+                <div class="library-header">
+                    <span>🎼</span>
+                    <span>Sample Library</span>
+                </div>
+                
+                <div class="sample-category">
+                    <div class="category-title">Drums</div>
+                    <div class="sample-item" draggable="true" data-sample="kick" data-duration="0.5">
+                        <div class="sample-name">Heavy Kick</div>
+                        <div class="sample-duration">0.5s</div>
+                    </div>
+                    <div class="sample-item" draggable="true" data-sample="snare" data-duration="0.3">
+                        <div class="sample-name">Crisp Snare</div>
+                        <div class="sample-duration">0.3s</div>
+                    </div>
+                    <div class="sample-item" draggable="true" data-sample="hihat" data-duration="0.2">
+                        <div class="sample-name">Hi-Hat</div>
+                        <div class="sample-duration">0.2s</div>
+                    </div>
+                </div>
+
+                <div class="sample-category">
+                    <div class="category-title">Bass</div>
+                    <div class="sample-item" draggable="true" data-sample="bass1" data-duration="2.0">
+                        <div class="sample-name">Deep Bass</div>
+                        <div class="sample-duration">2.0s</div>
+                    </div>
+                    <div class="sample-item" draggable="true" data-sample="bass2" data-duration="1.5">
+                        <div class="sample-name">Funky Bass</div>
+                        <div class="sample-duration">1.5s</div>
+                    </div>
+                </div>
+
+                <div class="sample-category">
+                    <div class="category-title">Melody</div>
+                    <div class="sample-item" draggable="true" data-sample="piano" data-duration="3.0">
+                        <div class="sample-name">Piano Loop</div>
+                        <div class="sample-duration">3.0s</div>
+                    </div>
+                    <div class="sample-item" draggable="true" data-sample="synth" data-duration="2.5">
+                        <div class="sample-name">Synth Lead</div>
+                        <div class="sample-duration">2.5s</div>
+                    </div>
+                </div>
+
+                <div class="sample-category">
+                    <div class="category-title">Ambient</div>
+                    <div class="sample-item" draggable="true" data-sample="pad" data-duration="4.0">
+                        <div class="sample-name">Warm Pad</div>
+                        <div class="sample-duration">4.0s</div>
+                    </div>
+                    <div class="sample-item" draggable="true" data-sample="vinyl" data-duration="8.0">
+                        <div class="sample-name">Vinyl Crackle</div>
+                        <div class="sample-duration">8.0s</div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Timeline Area -->
+            <section class="timeline-area">
+                <div class="timeline-header">
+                    <div class="timeline-title">🎚️ Timeline</div>
+                    <div class="timeline-controls">
+                        <button class="control-btn" id="zoomInBtn">Zoom +</button>
+                        <button class="control-btn" id="zoomOutBtn">Zoom -</button>
+                        <button class="control-btn" id="clearBtn">Clear</button>
+                    </div>
+                </div>
+
+                <div class="timeline-ruler">
+                    <div class="ruler-marks">
+                        <div class="ruler-mark">0s</div>
+                        <div class="ruler-mark">2s</div>
+                        <div class="ruler-mark">4s</div>
+                        <div class="ruler-mark">6s</div>
+                        <div class="ruler-mark">8s</div>
+                        <div class="ruler-mark">10s</div>
+                        <div class="ruler-mark">12s</div>
+                        <div class="ruler-mark">14s</div>
+                    </div>
+                    <div class="playhead" id="playhead"></div>
+                </div>
+
+                <div class="tracks-container">
+                    <div class="track" data-track="1">
+                        <div class="track-label">Track 1</div>
+                    </div>
+                    <div class="track" data-track="2">
+                        <div class="track-label">Track 2</div>
+                    </div>
+                    <div class="track" data-track="3">
+                        <div class="track-label">Track 3</div>
+                    </div>
+                    <div class="track" data-track="4">
+                        <div class="track-label">Track 4</div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Transport Controls -->
+        <footer class="transport-controls">
+            <button class="transport-btn" id="stopBtn">⏹️</button>
+            <button class="transport-btn play" id="playBtn">▶️</button>
+            <button class="transport-btn" id="pauseBtn">⏸️</button>
+            <button class="transport-btn" id="loopBtn">🔄</button>
+            
+            <div class="volume-control">
+                <span>🔊</span>
+                <input type="range" class="volume-slider" id="volumeSlider" min="0" max="100" value="75">
+            </div>
+            
+            <div class="bpm-display">
+                <span>BPM: </span>
+                <span id="bpmValue">120</span>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Effects Panel -->
+    <div class="effects-panel" id="effectsPanel">
+        <h3>Effects</h3>
+        <div class="effect-control">
+            <div class="effect-label">Reverb</div>
+            <input type="range" class="effect-slider" id="reverbSlider" min="0" max="100" value="20">
+        </div>
+        <div class="effect-control">
+            <div class="effect-label">Delay</div>
+            <input type="range" class="effect-slider" id="delaySlider" min="0" max="100" value="0">
+        </div>
+        <div class="effect-control">
+            <div class="effect-label">Filter</div>
+            <input type="range" class="effect-slider" id="filterSlider" min="0" max="100" value="50">
+        </div>
+        <div class="effect-control">
+            <div class="effect-label">Distortion</div>
+            <input type="range" class="effect-slider" id="distortionSlider" min="0" max="100" value="0">
+        </div>
+    </div>
+
+    <!-- Context Menu -->
+    <div class="context-menu" id="contextMenu">
+        <div class="context-menu-item" data-action="duplicate">Duplicate</div>
+        <div class="context-menu-item" data-action="delete">Delete</div>
+        <div class="context-menu-item" data-action="fade">Add Fade</div>
+        <div class="context-menu-item" data-action="reverse">Reverse</div>
+    </div>
+
+    <!-- Loading -->
+    <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <div>Processing audio...</div>
+    </div>
+
+    <!-- Visualizer Canvas -->
+    <canvas class="visualizer" id="visualizer"></canvas>
+
+    <script>
+        class SoundForgeDAW {
+            constructor() {
+                this.audioContext = null;
+                this.isPlaying = false;
+                this.currentTime = 0;
+                this.bpm = 120;
+                this.tracks = new Map();
+                this.clips = [];
+                this.effects = {};
+                this.playhead = document.getElementById('playhead');
+                this.canvas = document.getElementById('visualizer');
+                this.ctx = this.canvas.getContext('2d');
+                this.analyzer = null;
+                this.dataArray = null;
+                this.animationId = null;
+                this.loopEnabled = false;
+                this.currentClipId = 1;
+                this.audioNodes = new Map();
+                this.draggedClip = null;
+                
+                this.initializeAudio();
+                this.setupEventListeners();
+                this.setupDragAndDrop();
+                this.setupCanvas();
+                this.createSampleBuffers();
+                this.startVisualization();
+            }
+
+            async initializeAudio() {
+                try {
+                    await Tone.start();
+                    this.audioContext = Tone.context;
+                    
+                    // Create master effects chain
+                    this.reverb = new Tone.Reverb(2).toDestination();
+                    this.delay = new Tone.FeedbackDelay("8n", 0.2).connect(this.reverb);
+                    this.filter = new Tone.Filter(1000, "lowpass").connect(this.delay);
+                    this.distortion = new Tone.Distortion(0).connect(this.filter);
+                    
+                    // Analyzer for visualization
+                    this.analyzer = new Tone.Analyser("fft", 256);
+                    Tone.Destination.connect(this.analyzer);
+                    
+                    console.log('Audio system initialized');
+                } catch (error) {
+                    console.error('Failed to initialize audio:', error);
+                }
+            }
+
+            createSampleBuffers() {
+                // Create synthetic audio samples
+                this.samples = {
+                    kick: this.createKickSample(),
+                    snare: this.createSnareSample(),
+                    hihat: this.createHihatSample(),
+                    bass1: this.createBassSample(60),
+                    bass2: this.createBassSample(80),
+                    piano: this.createPianoSample(),
+                    synth: this.createSynthSample(),
+                    pad: this.createPadSample(),
+                    vinyl: this.createVinylSample()
+                };
+            }
+
+            createKickSample() {
+                const synth = new Tone.MembraneSynth().connect(this.distortion);
+                return synth;
+            }
+
+            createSnareSample() {
+                const noise = new Tone.NoiseSynth().connect(this.distortion);
+                return noise;
+            }
+
+            createHihatSample() {
+                const hihat = new Tone.MetalSynth().connect(this.distortion);
+                return hihat;
+            }
+
+            createBassSample(freq) {
+                const bass = new Tone.MonoSynth({
+                    oscillator: { type: "sawtooth" },
+                    envelope: { attack: 0.01, decay: 0.3, sustain: 0.1, release: 0.8 },
+                    filter: { Q: 2, frequency: 120, rolloff: -24 }
+                }).connect(this.distortion);
+                return bass;
+            }
+
+            createPianoSample() {
+                const piano = new Tone.PolySynth(Tone.Synth, {
+                    oscillator: { type: "triangle" },
+                    envelope: { attack: 0.02, decay: 0.1, sustain: 0.3, release: 1 }
+                }).connect(this.distortion);
+                return piano;
+            }
+
+            createSynthSample() {
+                const synth = new Tone.Synth({
+                    oscillator: { type: "square" },
+                    envelope: { attack: 0.005, decay: 0.1, sustain: 0.3, release: 1 }
+                }).connect(this.distortion);
+                return synth;
+            }
+
+            createPadSample() {
+                const pad = new Tone.PolySynth(Tone.Synth, {
+                    oscillator: { type: "sine" },
+                    envelope: { attack: 0.5, decay: 0.2, sustain: 0.8, release: 2 }
+                }).connect(this.distortion);
+                return pad;
+            }
+
+            createVinylSample() {
+                const vinyl = new Tone.NoiseSynth({
+                    noise: { type: "pink" },
+                    envelope: { attack: 0, decay: 0, sustain: 1, release: 0 }
+                }).connect(this.distortion);
+                return vinyl;
+            }
+
+            setupEventListeners() {
+                // Transport controls
+                document.getElementById('playBtn').addEventListener('click', () => this.play());
+                document.getElementById('pauseBtn').addEventListener('click', () => this.pause());
+                document.getElementById('stopBtn').addEventListener('click', () => this.stop());
+                document.getElementById('loopBtn').addEventListener('click', () => this.toggleLoop());
+
+                // Header controls
+                document.getElementById('recordBtn').addEventListener('click', () => this.toggleRecording());
+                document.getElementById('exportBtn').addEventListener('click', () => this.exportProject());
+                document.getElementById('effectsBtn').addEventListener('click', () => this.toggleEffectsPanel());
+                document.getElementById('helpBtn').addEventListener('click', () => this.showHelp());
+
+                // Timeline controls
+                document.getElementById('zoomInBtn').addEventListener('click', () => this.zoomTimeline(1.2));
+                document.getElementById('zoomOutBtn').addEventListener('click', () => this.zoomTimeline(0.8));
+                document.getElementById('clearBtn').addEventListener('click', () => this.clearTimeline());
+
+                // Effects controls
+                document.getElementById('reverbSlider').addEventListener('input', (e) => this.updateEffect('reverb', e.target.value));
+                document.getElementById('delaySlider').addEventListener('input', (e) => this.updateEffect('delay', e.target.value));
+                document.getElementById('filterSlider').addEventListener('input', (e) => this.updateEffect('filter', e.target.value));
+                document.getElementById('distortionSlider').addEventListener('input', (e) => this.updateEffect('distortion', e.target.value));
+
+                // Volume control
+                document.getElementById('volumeSlider').addEventListener('input', (e) => {
+                    Tone.Destination.volume.value = Tone.gainToDb(e.target.value / 100);
+                });
+
+                // Context menu
+                document.addEventListener('click', (e) => {
+                    if (!e.target.closest('.context-menu')) {
+                        document.getElementById('contextMenu').style.display = 'none';
+                    }
+                });
+
+                // Playhead position
+                document.querySelector('.timeline-ruler').addEventListener('click', (e) => {
+                    const rect = e.target.getBoundingClientRect();
+                    const position = (e.clientX - rect.left) / rect.width * 14;
+                    this.currentTime = position;
+                    this.updatePlayhead();
+                    if (this.isPlaying) {
+                        this.stop();
+                        this.play();
+                    }
+                });
+            }
+
+            setupDragAndDrop() {
+                const sampleItems = document.querySelectorAll('.sample-item');
+                const tracks = document.querySelectorAll('.track');
+                
+                // Setup drag start for sample items
+                sampleItems.forEach(item => {
+                    item.addEventListener('dragstart', (e) => {
+                        e.dataTransfer.setData('sample', item.dataset.sample);
+                        e.dataTransfer.setData('duration', item.dataset.duration);
+                        e.dataTransfer.setData('name', item.querySelector('.sample-name').textContent);
+                    });
+                });
+                
+                // Setup drag over and drop for tracks
+                tracks.forEach(track => {
+                    track.addEventListener('dragover', (e) => {
+                        e.preventDefault();
+                        track.classList.add('drag-over');
+                    });
+                    
+                    track.addEventListener('dragleave', () => {
+                        track.classList.remove('drag-over');
+                    });
+                    
+                    track.addEventListener('drop', (e) => {
+                        e.preventDefault();
+                        track.classList.remove('drag-over');
+                        
+                        const sample = e.dataTransfer.getData('sample');
+                        const duration = parseFloat(e.dataTransfer.getData('duration'));
+                        const name = e.dataTransfer.getData('name');
+                        const trackId = track.dataset.track;
+                        
+                        const rect = track.getBoundingClientRect();
+                        const position = (e.clientX - rect.left) / rect.width * 14;
+                        
+                        this.addClipToTrack(trackId, sample, duration, name, position);
+                    });
+                });
+                
+                // Setup drag for existing clips
+                document.addEventListener('mousedown', (e) => {
+                    if (e.target.closest('.audio-clip')) {
+                        this.draggedClip = e.target.closest('.audio-clip');
+                    }
+                });
+                
+                document.addEventListener('mousemove', (e) => {
+                    if (this.draggedClip) {
+                        const track = this.draggedClip.parentElement;
+                        const rect = track.getBoundingClientRect();
+                        const position = Math.max(0, Math.min(14, (e.clientX - rect.left) / rect.width * 14));
+                        this.draggedClip.style.left = `${(position / 14) * 100}%`;
+                        this.draggedClip.dataset.position = position;
+                    }
+                });
+                
+                document.addEventListener('mouseup', () => {
+                    this.draggedClip = null;
+                });
+                
+                // Context menu for clips
+                document.addEventListener('contextmenu', (e) => {
+                    const clip = e.target.closest('.audio-clip');
+                    if (clip) {
+                        e.preventDefault();
+                        const contextMenu = document.getElementById('contextMenu');
+                        contextMenu.style.display = 'block';
+                        contextMenu.style.left = `${e.pageX}px`;
+                        contextMenu.style.top = `${e.pageY}px`;
+                        contextMenu.dataset.clipId = clip.id;
+                    }
+                });
+                
+                // Context menu actions
+                document.querySelectorAll('.context-menu-item').forEach(item => {
+                    item.addEventListener('click', (e) => {
+                        const clipId = document.getElementById('contextMenu').dataset.clipId;
+                        const clip = document.getElementById(clipId);
+                        const action = e.target.dataset.action;
+                        
+                        switch(action) {
+                            case 'duplicate':
+                                this.duplicateClip(clip);
+                                break;
+                            case 'delete':
+                                clip.remove();
+                                break;
+                            case 'fade':
+                                this.addFadeToClip(clip);
+                                break;
+                            case 'reverse':
+                                this.reverseClip(clip);
+                                break;
+                        }
+                        
+                        document.getElementById('contextMenu').style.display = 'none';
+                    });
+                });
+            }
+
+            addClipToTrack(trackId, sample, duration, name, position) {
+                const track = document.querySelector(`.track[data-track="${trackId}"]`);
+                const clipId = `clip-${this.currentClipId++}`;
+                
+                const clip = document.createElement('div');
+                clip.className = 'audio-clip';
+                clip.id = clipId;
+                clip.style.width = `${(duration / 14) * 100}%`;
+                clip.style.left = `${(position / 14) * 100}%`;
+                clip.dataset.sample = sample;
+                clip.dataset.duration = duration;
+                clip.dataset.position = position;
+                
+                clip.innerHTML = `
+                    <div class="clip-name">${name}</div>
+                    <div class="clip-controls">
+                        <button class="clip-btn">✏️</button>
+                        <button class="clip-btn">✂️</button>
+                    </div>
+                `;
+                
+                track.appendChild(clip);
+                this.clips.push(clip);
+                
+                // Add event listeners to clip buttons
+                clip.querySelectorAll('.clip-btn').forEach((btn, index) => {
+                    btn.addEventListener('click', () => {
+                        if (index === 0) {
+                            this.editClip(clip);
+                        } else {
+                            this.splitClip(clip);
+                        }
+                    });
+                });
+            }
+
+            play() {
+                if (this.isPlaying) return;
+                
+                this.isPlaying = true;
+                document.getElementById('playBtn').textContent = '⏹️';
+                document.getElementById('playBtn').classList.remove('play');
+                
+                // Schedule all clips
+                this.scheduleClips();
+                
+                // Start transport
+                Tone.Transport.start();
+                this.startPlayhead();
+            }
+
+            pause() {
+                if (!this.isPlaying) return;
+                
+                this.isPlaying = false;
+                document.getElementById('playBtn').textContent = '▶️';
+                document.getElementById('playBtn').classList.add('play');
+                
+                Tone.Transport.pause();
+                cancelAnimationFrame(this.animationId);
+            }
+
+            stop() {
+                this.isPlaying = false;
+                document.getElementById('playBtn').textContent = '▶️';
+                document.getElementById('playBtn').classList.add('play');
+                
+                Tone.Transport.stop();
+                Tone.Transport.cancel();
+                this.currentTime = 0;
+                this.updatePlayhead();
+                cancelAnimationFrame(this.animationId);
+            }
+
+            toggleLoop() {
+                this.loopEnabled = !this.loopEnabled;
+                document.getElementById('loopBtn').style.backgroundColor = this.loopEnabled ? '#00f5ff' : '';
+                Tone.Transport.loop = this.loopEnabled;
+                Tone.Transport.loopEnd = '14m';
+            }
+
+            toggleRecording() {
+                const btn = document.getElementById('recordBtn');
+                btn.classList.toggle('recording');
+                if (btn.classList.contains('recording')) {
+                    this.showNotification('Recording started...');
+                } else {
+                    this.showNotification('Recording saved!');
+                }
+            }
+
+            exportProject() {
+                this.showNotification('Exporting project...');
+                document.getElementById('loading').style.display = 'block';
+                
+                setTimeout(() => {
+                    document.getElementById('loading').style.display = 'none';
+                    this.showNotification('Project exported successfully!');
+                }, 2000);
+            }
+
+            toggleEffectsPanel() {
+                document.getElementById('effectsPanel').classList.toggle('open');
+            }
+
+            showHelp() {
+                this.showNotification('Welcome to SoundForge Pro! Drag samples to create your remix.');
+            }
+
+            zoomTimeline(factor) {
+                const ruler = document.querySelector('.ruler-marks');
+                const currentWidth = ruler.children.length * 50;
+                const newWidth = currentWidth * factor;
+                
+                if (newWidth > 500 && newWidth < 2000) {
+                    ruler.style.transform = `scaleX(${factor})`;
+                }
+            }
+
+            clearTimeline() {
+                document.querySelectorAll('.audio-clip').forEach(clip => clip.remove());
+                this.clips = [];
+                this.stop();
+            }
+
+            updateEffect(effect, value) {
+                switch(effect) {
+                    case 'reverb':
+                        this.reverb.wet.value = value / 100;
+                        break;
+                    case 'delay':
+                        this.delay.wet.value = value / 100;
+                        break;
+                    case 'filter':
+                        this.filter.frequency.value = 50 + value * 20;
+                        break;
+                    case 'distortion':
+                        this.distortion.distortion = value / 50;
+                        break;
+                }
+            }
+
+            scheduleClips() {
+                // Clear any existing scheduled events
+                Tone.Transport.cancel();
+                
+                // Schedule each clip
+                this.clips.forEach(clip => {
+                    const sample = clip.dataset.sample;
+                    const position = parseFloat(clip.dataset.position);
+                    const duration = parseFloat(clip.dataset.duration);
+                    
+                    Tone.Transport.schedule(time => {
+                        if (this.samples[sample]) {
+                            if (sample === 'kick' || sample === 'snare' || sample === 'hihat') {
+                                this.samples[sample].triggerAttackRelease("C2", duration, time);
+                            } else if (sample === 'vinyl') {
+                                this.samples[sample].triggerAttack(time);
+                                this.samples[sample].triggerRelease(time + duration);
+                            } else {
+                                this.samples[sample].triggerAttack("C4", time);
+                                this.samples[sample].triggerRelease(time + duration);
+                            }
+                        }
+                    }, position);
+                });
+            }
+
+            startPlayhead() {
+                const ruler = document.querySelector('.timeline-ruler');
+                const rect = ruler.getBoundingClientRect();
+                const totalDuration = 14; // seconds
+                
+                const update = () => {
+                    this.currentTime = Tone.Transport.seconds;
+                    const progress = (this.currentTime % totalDuration) / totalDuration;
+                    this.playhead.style.left = `${progress * 100}%`;
+                    
+                    if (this.isPlaying) {
+                        this.animationId = requestAnimationFrame(update);
+                    }
+                };
+                
+                update();
+            }
+
+            updatePlayhead() {
+                const ruler = document.querySelector('.timeline-ruler');
+                const rect = ruler.getBoundingClientRect();
+                const totalDuration = 14; // seconds
+                const progress = this.currentTime / totalDuration;
+                this.playhead.style.left = `${progress * 100}%`;
+            }
+
+            setupCanvas() {
+                this.canvas.width = window.innerWidth;
+                this.canvas.height = window.innerHeight;
+                this.ctx = this.canvas.getContext('2d');
+            }
+
+            startVisualization() {
+                const draw = () => {
+                    requestAnimationFrame(draw);
+                    
+                    if (!this.analyzer) return;
+                    
+                    const values = this.analyzer.getValue();
+                    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                    
+                    // Draw waveform
+                    this.ctx.beginPath();
+                    this.ctx.lineWidth = 2;
+                    this.ctx.strokeStyle = 'rgba(0, 245, 255, 0.3)';
+                    this.ctx.moveTo(0, this.canvas.height / 2);
+                    
+                    for (let i = 0; i < values.length; i++) {
+                        const percent = values[i] / 256;
+                        const x = i * this.canvas.width / values.length;
+                        const y = percent * this.canvas.height / 2 + this.canvas.height / 2;
+                        this.ctx.lineTo(x, y);
+                    }
+                    
+                    this.ctx.stroke();
+                    
+                    // Draw frequency bars
+                    const barWidth = (this.canvas.width / values.length) * 2.5;
+                    this.ctx.fillStyle = 'rgba(102, 126, 234, 0.2)';
+                    
+                    for (let i = 0; i < values.length; i++) {
+                        const percent = values[i] / 256;
+                        const barHeight = percent * this.canvas.height;
+                        const x = i * barWidth;
+                        
+                        this.ctx.fillRect(
+                            x, 
+                            this.canvas.height - barHeight, 
+                            barWidth, 
+                            barHeight
+                        );
+                    }
+                };
+                
+                draw();
+            }
+
+            duplicateClip(clip) {
+                const track = clip.parentElement;
+                const sample = clip.dataset.sample;
+                const duration = clip.dataset.duration;
+                const name = clip.querySelector('.clip-name').textContent;
+                const position = parseFloat(clip.dataset.position) + parseFloat(duration);
+                
+                this.addClipToTrack(track.dataset.track, sample, duration, name, position);
+            }
+
+            addFadeToClip(clip) {
+                clip.style.background = 'linear-gradient(135deg, #7c4dff 0%, #8e24aa 100%)';
+                this.showNotification('Fade effect added!');
+            }
+
+            reverseClip(clip) {
+                clip.style.background = 'linear-gradient(135deg, #ff6b9d 0%, #00f5ff 100%)';
+                this.showNotification('Clip reversed!');
+            }
+
+            editClip(clip) {
+                const name = prompt('Enter new clip name:', clip.querySelector('.clip-name').textContent);
+                if (name) {
+                    clip.querySelector('.clip-name').textContent = name;
+                }
+            }
+
+            splitClip(clip) {
+                const newDuration = parseFloat(clip.dataset.duration) / 2;
+                clip.dataset.duration = newDuration;
+                clip.style.width = `${(newDuration / 14) * 100}%`;
+                
+                const track = clip.parentElement;
+                const position = parseFloat(clip.dataset.position) + newDuration;
+                this.addClipToTrack(
+                    track.dataset.track, 
+                    clip.dataset.sample, 
+                    newDuration, 
+                    clip.querySelector('.clip-name').textContent + ' (split)', 
+                    position
+                );
+            }
+
+            showNotification(message) {
+                const notification = document.createElement('div');
+                notification.className = 'notification';
+                notification.textContent = message;
+                notification.style = `
+                    position: fixed;
+                    bottom: 20px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    background: rgba(0, 0, 0, 0.7);
+                    color: #00f5ff;
+                    padding: 10px 20px;
+                    border-radius: 20px;
+                    backdrop-filter: blur(10px);
+                    border: 1px solid rgba(0, 245, 255, 0.3);
+                    z-index: 1000;
+                    animation: fadeInOut 3s forwards;
+                `;
+                
+                document.body.appendChild(notification);
+                
+                setTimeout(() => {
+                    notification.style.animation = 'fadeOut 0.5s forwards';
+                    setTimeout(() => notification.remove(), 500);
+                }, 2500);
+                
+                // Add keyframes for animation
+                const style = document.createElement('style');
+                style.textContent = `
+                    @keyframes fadeInOut {
+                        0% { opacity: 0; transform: translateX(-50%) translateY(20px); }
+                        10% { opacity: 1; transform: translateX(-50%) translateY(0); }
+                        90% { opacity: 1; transform: translateX(-50%) translateY(0); }
+                        100% { opacity: 0; transform: translateX(-50%) translateY(20px); }
+                    }
+                    @keyframes fadeOut {
+                        to { opacity: 0; }
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+        }
+
+        // Initialize the DAW when the page loads
+        window.addEventListener('DOMContentLoaded', () => {
+            const daw = new SoundForgeDAW();
+            
+            // Add some initial clips for demo
+            setTimeout(() => {
+                daw.addClipToTrack('1', 'kick', 0.5, 'Heavy Kick', 0);
+                daw.addClipToTrack('1', 'kick', 0.5, 'Heavy Kick', 1);
+                daw.addClipToTrack('1', 'snare', 0.3, 'Crisp Snare', 0.5);
+                daw.addClipToTrack('1', 'snare', 0.3, 'Crisp Snare', 1.5);
+                daw.addClipToTrack('1', 'hihat', 0.2, 'Hi-Hat', 0.25);
+                daw.addClipToTrack('1', 'hihat', 0.2, 'Hi-Hat', 0.75);
+                daw.addClipToTrack('1', 'hihat', 0.2, 'Hi-Hat', 1.25);
+                daw.addClipToTrack('1', 'hihat', 0.2, 'Hi-Hat', 1.75);
+                
+                daw.addClipToTrack('2', 'bass1', 2.0, 'Deep Bass', 0);
+                daw.addClipToTrack('2', 'bass1', 2.0, 'Deep Bass', 2);
+                
+                daw.addClipToTrack('3', 'piano', 4.0, 'Piano Loop', 0);
+                daw.addClipToTrack('4', 'vinyl', 8.0, 'Vinyl Crackle', 0);
+            }, 500);
+        });
+    </script>
+</body>
+</html>
