@@ -1,0 +1,1439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Remix Sound Editor - Professional Mini DAW</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
+            color: #ffffff;
+            overflow-x: auto;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(45deg, #00d4ff, #ff6b6b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .transport-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .control-btn {
+            background: linear-gradient(145deg, #2d3748, #4a5568);
+            border: none;
+            color: white;
+            padding: 12px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 600;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .control-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+            background: linear-gradient(145deg, #4a5568, #2d3748);
+        }
+
+        .control-btn.active {
+            background: linear-gradient(145deg, #00d4ff, #0099cc);
+        }
+
+        .tempo-display {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-weight: 600;
+            margin-left: 20px;
+        }
+
+        .main-container {
+            display: flex;
+            height: calc(100vh - 80px);
+        }
+
+        .sample-library {
+            width: 300px;
+            background: rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .library-section {
+            margin-bottom: 30px;
+        }
+
+        .library-title {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 15px;
+            color: #00d4ff;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .sample-item {
+            background: linear-gradient(145deg, #2d3748, #1a202c);
+            padding: 12px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            cursor: grab;
+            transition: all 0.2s ease;
+            border: 2px solid transparent;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .sample-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0, 212, 255, 0.2), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .sample-item:hover::before {
+            left: 100%;
+        }
+
+        .sample-item:hover {
+            transform: translateY(-2px);
+            border-color: #00d4ff;
+            box-shadow: 0 8px 16px rgba(0, 212, 255, 0.3);
+        }
+
+        .sample-item:active {
+            cursor: grabbing;
+        }
+
+        .sample-name {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .sample-info {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .workspace {
+            flex: 1;
+            padding: 20px;
+            overflow: auto;
+        }
+
+        .track-container {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            margin-bottom: 15px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .track-header {
+            background: linear-gradient(145deg, #2d3748, #4a5568);
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .track-name {
+            font-weight: 700;
+            font-size: 16px;
+        }
+
+        .track-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .track-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s ease;
+        }
+
+        .track-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .track-btn.active {
+            background: #ff6b6b;
+        }
+
+        .volume-slider {
+            width: 80px;
+        }
+
+        .timeline {
+            height: 120px;
+            background: linear-gradient(90deg, #1a1a2e 0%, #16213e 100%);
+            position: relative;
+            border: 2px dashed rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+            overflow-x: auto;
+            overflow-y: hidden;
+        }
+
+        .timeline.drag-over {
+            border-color: #00d4ff;
+            background: rgba(0, 212, 255, 0.1);
+            transform: scale(1.02);
+        }
+
+        .audio-clip {
+            position: absolute;
+            height: 80px;
+            top: 20px;
+            background: linear-gradient(145deg, #00d4ff, #0099cc);
+            border-radius: 8px;
+            cursor: grab;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(0, 212, 255, 0.4);
+            transition: all 0.2s ease;
+            min-width: 100px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            overflow: hidden;
+            user-select: none;
+        }
+
+        .audio-clip::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: repeating-linear-gradient(
+                45deg,
+                transparent,
+                transparent 4px,
+                rgba(255, 255, 255, 0.1) 4px,
+                rgba(255, 255, 255, 0.1) 8px
+            );
+            pointer-events: none;
+        }
+
+        .audio-clip:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0, 212, 255, 0.6);
+        }
+
+        .audio-clip:active {
+            cursor: grabbing;
+        }
+
+        .audio-clip.selected {
+            border-color: #ff6b6b;
+            box-shadow: 0 0 20px rgba(255, 107, 107, 0.8);
+        }
+
+        .effects-panel {
+            width: 280px;
+            background: rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+            border-left: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .effects-section {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .effects-title {
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 15px;
+            color: #ff6b6b;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .effect-control {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .effect-label {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .effect-slider {
+            width: 120px;
+        }
+
+        .waveform {
+            width: 100%;
+            height: 40px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 4px;
+            margin-top: 10px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .waveform-bars {
+            display: flex;
+            height: 100%;
+            align-items: end;
+            justify-content: space-around;
+            padding: 5px;
+        }
+
+        .waveform-bar {
+            width: 3px;
+            background: linear-gradient(to top, #00d4ff, #ff6b6b);
+            border-radius: 1px;
+            transition: height 0.1s ease;
+        }
+
+        .playhead {
+            position: absolute;
+            top: 0;
+            width: 2px;
+            height: 100%;
+            background: #ff6b6b;
+            z-index: 100;
+            transition: left 0.1s linear;
+        }
+
+        .timeline-ruler {
+            height: 30px;
+            background: rgba(0, 0, 0, 0.3);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .ruler-mark {
+            position: absolute;
+            top: 0;
+            height: 100%;
+            width: 1px;
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .ruler-label {
+            position: absolute;
+            top: 5px;
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.6);
+            user-select: none;
+        }
+
+        .visualizer {
+            width: 100%;
+            height: 60px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            margin: 15px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .freq-bars {
+            display: flex;
+            height: 100%;
+            align-items: end;
+            gap: 2px;
+            padding: 10px;
+        }
+
+        .freq-bar {
+            width: 4px;
+            background: linear-gradient(to top, #00d4ff, #ff6b6b);
+            border-radius: 2px;
+            transition: height 0.05s ease;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.5; }
+            50% { opacity: 1; }
+            100% { opacity: 0.5; }
+        }
+
+        .recording {
+            animation: pulse 1s infinite;
+        }
+
+        .context-menu {
+            position: fixed;
+            background: rgba(45, 55, 72, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            padding: 8px 0;
+            z-index: 1000;
+            display: none;
+            min-width: 150px;
+        }
+
+        .context-item {
+            padding: 8px 16px;
+            cursor: pointer;
+            transition: background 0.2s ease;
+            font-size: 14px;
+        }
+
+        .context-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top: 3px solid #00d4ff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            background: transparent;
+            cursor: pointer;
+        }
+
+        input[type="range"]::-webkit-slider-track {
+            background: rgba(255, 255, 255, 0.2);
+            height: 4px;
+            border-radius: 2px;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            background: #00d4ff;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0, 212, 255, 0.4);
+        }
+
+        input[type="range"]::-moz-range-track {
+            background: rgba(255, 255, 255, 0.2);
+            height: 4px;
+            border-radius: 2px;
+            border: none;
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            background: #00d4ff;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 6px rgba(0, 212, 255, 0.4);
+        }
+
+        .notification {
+            position: fixed;
+            top: 100px;
+            right: 20px;
+            background: linear-gradient(145deg, #00d4ff, #0099cc);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            z-index: 1500;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0, 212, 255, 0.4);
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+    </style>
+</head>
+<body>
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+    </div>
+
+    <div class="notification" id="notification"></div>
+
+    <header class="header">
+        <div class="logo">🎵 Remix Studio Pro</div>
+        <div class="transport-controls">
+            <button class="control-btn" id="playBtn">▶ Play</button>
+            <button class="control-btn" id="pauseBtn">⏸ Pause</button>
+            <button class="control-btn" id="stopBtn">⏹ Stop</button>
+            <button class="control-btn" id="recordBtn">⏺ Record</button>
+            <button class="control-btn" id="loopBtn">🔄 Loop</button>
+            <div class="tempo-display">
+                BPM: <span id="tempoValue">120</span>
+            </div>
+        </div>
+    </header>
+
+    <div class="main-container">
+        <div class="sample-library">
+            <div class="library-section">
+                <h3 class="library-title">🥁 Drums</h3>
+                <div class="sample-item" draggable="true" data-sample="kick" data-type="drum">
+                    <div class="sample-name">Kick Drum</div>
+                    <div class="sample-info">808 • C3 • 1.2s</div>
+                </div>
+                <div class="sample-item" draggable="true" data-sample="snare" data-type="drum">
+                    <div class="sample-name">Snare</div>
+                    <div class="sample-info">Acoustic • D3 • 0.8s</div>
+                </div>
+                <div class="sample-item" draggable="true" data-sample="hihat" data-type="drum">
+                    <div class="sample-name">Hi-Hat</div>
+                    <div class="sample-info">Closed • F#3 • 0.3s</div>
+                </div>
+                <div class="sample-item" draggable="true" data-sample="openhat" data-type="drum">
+                    <div class="sample-name">Open Hat</div>
+                    <div class="sample-info">Open • F#3 • 1.5s</div>
+                </div>
+                <div class="sample-item" draggable="true" data-sample="crash" data-type="drum">
+                    <div class="sample-name">Crash</div>
+                    <div class="sample-info">Cymbal • A3 • 3.2s</div>
+                </div>
+            </div>
+
+            <div class="library-section">
+                <h3 class="library-title">🎹 Melodic</h3>
+                <div class="sample-item" draggable="true" data-sample="piano" data-type="melodic">
+                    <div class="sample-name">Piano Chord</div>
+                    <div class="sample-info">Am7 • 4 bars</div>
+                </div>
+                <div class="sample-item" draggable="true" data-sample="guitar" data-type="melodic">
+                    <div class="sample-name">Guitar Strum</div>
+                    <div class="sample-info">G Major • 2 bars</div>
+                </div>
+                <div class="sample-item" draggable="true" data-sample="synth" data-type="melodic">
+                    <div class="sample-name">Synth Lead</div>
+                    <div class="sample-info">Saw Wave • C5</div>
+                </div>
+                <div class="sample-item" draggable="true" data-sample="bass" data-type="melodic">
+                    <div class="sample-name">Bass Line</div>
+                    <div class="sample-info">Sub • E1 • 8 bars</div>
+                </div>
+            </div>
+
+            <div class="library-section">
+                <h3 class="library-title">🌊 Ambient</h3>
+                <div class="sample-item" draggable="true" data-sample="pad" data-type="ambient">
+                    <div class="sample-name">Warm Pad</div>
+                    <div class="sample-info">Ethereal • 16 bars</div>
+                </div>
+                <div class="sample-item" draggable="true" data-sample="vinyl" data-type="ambient">
+                    <div class="sample-name">Vinyl Crackle</div>
+                    <div class="sample-info">Lo-Fi • Loop</div>
+                </div>
+                <div class="sample-item" draggable="true" data-sample="rain" data-type="ambient">
+                    <div class="sample-name">Rain Drops</div>
+                    <div class="sample-info">Nature • 60s</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="workspace">
+            <div class="timeline-ruler" id="timelineRuler"></div>
+            
+            <div class="track-container">
+                <div class="track-header">
+                    <span class="track-name">🥁 Drums</span>
+                    <div class="track-controls">
+                        <button class="track-btn" data-action="mute">M</button>
+                        <button class="track-btn" data-action="solo">S</button>
+                        <input type="range" class="volume-slider" min="0" max="100" value="75">
+                        <span class="track-btn">75%</span>
+                    </div>
+                </div>
+                <div class="timeline" data-track="0"></div>
+            </div>
+
+            <div class="track-container">
+                <div class="track-header">
+                    <span class="track-name">🎹 Melodic</span>
+                    <div class="track-controls">
+                        <button class="track-btn" data-action="mute">M</button>
+                        <button class="track-btn" data-action="solo">S</button>
+                        <input type="range" class="volume-slider" min="0" max="100" value="65">
+                        <span class="track-btn">65%</span>
+                    </div>
+                </div>
+                <div class="timeline" data-track="1"></div>
+            </div>
+
+            <div class="track-container">
+                <div class="track-header">
+                    <span class="track-name">🌊 Ambient</span>
+                    <div class="track-controls">
+                        <button class="track-btn" data-action="mute">M</button>
+                        <button class="track-btn" data-action="solo">S</button>
+                        <input type="range" class="volume-slider" min="0" max="100" value="45">
+                        <span class="track-btn">45%</span>
+                    </div>
+                </div>
+                <div class="timeline" data-track="2"></div>
+            </div>
+
+            <div class="track-container">
+                <div class="track-header">
+                    <span class="track-name">🎤 Master</span>
+                    <div class="track-controls">
+                        <button class="track-btn" data-action="mute">M</button>
+                        <button class="track-btn" data-action="solo">S</button>
+                        <input type="range" class="volume-slider" min="0" max="100" value="85">
+                        <span class="track-btn">85%</span>
+                    </div>
+                </div>
+                <div class="timeline" data-track="3"></div>
+            </div>
+
+            <div class="visualizer">
+                <div class="freq-bars" id="frequencyBars"></div>
+            </div>
+        </div>
+
+        <div class="effects-panel">
+            <div class="effects-section">
+                <h3 class="effects-title">🎛️ Master Effects</h3>
+                <div class="effect-control">
+                    <span class="effect-label">Reverb</span>
+                    <input type="range" class="effect-slider" id="reverbAmount" min="0" max="100" value="25">
+                </div>
+                <div class="effect-control">
+                    <span class="effect-label">Delay</span>
+                    <input type="range" class="effect-slider" id="delayAmount" min="0" max="100" value="15">
+                </div>
+                <div class="effect-control">
+                    <span class="effect-label">Filter</span>
+                    <input type="range" class="effect-slider" id="filterFreq" min="20" max="20000" value="1000">
+                </div>
+                <div class="effect-control">
+                    <span class="effect-label">Distortion</span>
+                    <input type="range" class="effect-slider" id="distortion" min="0" max="100" value="0">
+                </div>
+            </div>
+
+            <div class="effects-section">
+                <h3 class="effects-title">📊 Analysis</h3>
+                <div class="waveform">
+                    <div class="waveform-bars" id="waveformBars"></div>
+                    <div class="playhead" id="playhead"></div>
+                </div>
+                <div class="effect-control">
+                    <span class="effect-label">Tempo</span>
+                    <input type="range" class="effect-slider" id="tempoSlider" min="60" max="180" value="120">
+                </div>
+            </div>
+
+            <div class="effects-section">
+                <h3 class="effects-title">⚡ Quick Actions</h3>
+                <button class="control-btn" style="width: 100%; margin-bottom: 8px;" onclick="clearAllTracks()">Clear All</button>
+                <button class="control-btn" style="width: 100%; margin-bottom: 8px;" onclick="exportProject()">Export WAV</button>
+                <button class="control-btn" style="width: 100%; margin-bottom: 8px;" onclick="saveProject()">Save Project</button>
+                <button class="control-btn" style="width: 100%;" onclick="loadProject()">Load Project</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="context-menu" id="contextMenu">
+        <div class="context-item" onclick="duplicateClip()">Duplicate</div>
+        <div class="context-item" onclick="deleteClip()">Delete</div>
+        <div class="context-item" onclick="fadeIn()">Fade In</div>
+        <div class="context-item" onclick="fadeOut()">Fade Out</div>
+        <div class="context-item" onclick="reverseClip()">Reverse</div>
+    </div>
+
+    <script>
+        // Audio Context and Global Variables
+        let audioContext;
+        let masterGain;
+        let analyser;
+        let reverb, delay, filter, distortion;
+        let isPlaying = false;
+        let isLooping = false;
+        let currentTime = 0;
+        let tempo = 120;
+        let selectedClip = null;
+        let draggedSample = null;
+        let trackData = [[], [], [], []]; // Four tracks
+        let nextClipId = 1;
+
+        // Initialize Audio Context
+        async function initAudio() {
+            try {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                masterGain = audioContext.createGain();
+                analyser = audioContext.createAnalyser();
+                
+                // Create effects
+                reverb = audioContext.createConvolver();
+                delay = audioContext.createDelay(1.0);
+                filter = audioContext.createBiquadFilter();
+                distortion = audioContext.createWaveShaper();
+                
+                // Setup effects chain
+                masterGain.connect(reverb);
+                reverb.connect(delay);
+                delay.connect(filter);
+                filter.connect(distortion);
+                distortion.connect(analyser);
+                analyser.connect(audioContext.destination);
+                
+                // Configure analyser
+                analyser.fftSize = 256;
+                
+                // Create impulse response for reverb
+                createReverbImpulse();
+                
+                showNotification('Audio system initialized successfully!');
+            } catch (error) {
+                console.error('Audio initialization failed:', error);
+                showNotification('Audio initialization failed. Please check your browser settings.');
+            }
+        }
+
+        // Create reverb impulse response
+        function createReverbImpulse() {
+            const length = audioContext.sampleRate * 2;
+            const impulse = audioContext.createBuffer(2, length, audioContext.sampleRate);
+            
+            for (let channel = 0; channel < 2; channel++) {
+                const channelData = impulse.getChannelData(channel);
+                for (let i = 0; i < length; i++) {
+                    channelData[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, 2);
+                }
+            }
+            
+            reverb.buffer = impulse;
+        }
+
+        // Sample definitions with synthetic audio generation
+        const sampleDefinitions = {
+            kick: { freq: 60, type: 'sine', duration: 0.5, envelope: [1, 0.8, 0.1, 0] },
+            snare: { freq: 200, type: 'sawtooth', duration: 0.3, envelope: [1, 0.3, 0.1, 0], noise: true },
+            hihat: { freq: 8000, type: 'square', duration: 0.1, envelope: [1, 0, 0, 0], noise: true },
+            openhat: { freq: 6000, type: 'square', duration: 0.8, envelope: [1, 0.4, 0.2, 0], noise: true },
+            crash: { freq: 3000, type: 'sawtooth', duration: 2.0, envelope: [1, 0.6, 0.3, 0], noise: true },
+            piano: { freq: 440, type: 'sine', duration: 2.0, envelope: [1, 0.8, 0.6, 0.1], chord: [440, 523, 659] },
+            guitar: { freq: 196, type: 'sawtooth', duration: 1.5, envelope: [1, 0.7, 0.5, 0.1], chord: [196, 246, 294] },
+            synth: { freq: 523, type: 'sawtooth', duration: 1.0, envelope: [0.1, 1, 0.6, 0.2] },
+            bass: { freq: 82, type: 'sine', duration: 2.0, envelope: [1, 0.9, 0.7, 0.3] },
+            pad: { freq: 261, type: 'sine', duration: 4.0, envelope: [0.2, 0.8, 0.6, 0.1], chord: [261, 329, 392, 523] },
+            vinyl: { freq: 100, type: 'square', duration: 8.0, envelope: [0.3, 0.3, 0.3, 0.3], noise: true, lowpass: 800 },
+            rain: { freq: 1000, type: 'square', duration: 10.0, envelope: [0.5, 0.5, 0.5, 0.5], noise: true, lowpass: 2000 }
+        };
+
+        // Generate synthetic audio buffer
+        function createSampleBuffer(sampleDef) {
+            const duration = sampleDef.duration;
+            const sampleRate = audioContext.sampleRate;
+            const length = Math.floor(duration * sampleRate);
+            const buffer = audioContext.createBuffer(1, length, sampleRate);
+            const data = buffer.getChannelData(0);
+
+            for (let i = 0; i < length; i++) {
+                const t = i / sampleRate;
+                const progress = i / length;
+                
+                let signal = 0;
+                
+                if (sampleDef.chord) {
+                    // Generate chord
+                    sampleDef.chord.forEach(freq => {
+                        signal += Math.sin(2 * Math.PI * freq * t) / sampleDef.chord.length;
+                    });
+                } else {
+                    // Generate single tone
+                    switch (sampleDef.type) {
+                        case 'sine':
+                            signal = Math.sin(2 * Math.PI * sampleDef.freq * t);
+                            break;
+                        case 'sawtooth':
+                            signal = 2 * (t * sampleDef.freq - Math.floor(t * sampleDef.freq + 0.5));
+                            break;
+                        case 'square':
+                            signal = Math.sin(2 * Math.PI * sampleDef.freq * t) > 0 ? 1 : -1;
+                            break;
+                    }
+                }
+                
+                // Add noise if specified
+                if (sampleDef.noise) {
+                    signal += (Math.random() * 2 - 1) * 0.3;
+                }
+                
+                // Apply envelope
+                const env = sampleDef.envelope;
+                let envValue = 1;
+                const quarter = length / 4;
+                
+                if (i < quarter) {
+                    envValue = env[0] + (env[1] - env[0]) * (i / quarter);
+                } else if (i < quarter * 2) {
+                    envValue = env[1] + (env[2] - env[1]) * ((i - quarter) / quarter);
+                } else if (i < quarter * 3) {
+                    envValue = env[2];
+                } else {
+                    envValue = env[2] + (env[3] - env[2]) * ((i - quarter * 3) / quarter);
+                }
+                
+                data[i] = signal * envValue * 0.3; // Master volume adjustment
+            }
+            
+            return buffer;
+        }
+
+        // Load all samples
+        const sampleBuffers = {};
+        function loadSamples() {
+            Object.keys(sampleDefinitions).forEach(sampleName => {
+                sampleBuffers[sampleName] = createSampleBuffer(sampleDefinitions[sampleName]);
+            });
+        }
+
+        // Play sample
+        function playSample(sampleName, time = 0, trackIndex = -1) {
+            if (!sampleBuffers[sampleName]) return null;
+            
+            const source = audioContext.createBufferSource();
+            const gainNode = audioContext.createGain();
+            
+            source.buffer = sampleBuffers[sampleName];
+            source.connect(gainNode);
+            
+            if (trackIndex >= 0) {
+                // Track-specific processing would go here
+                gainNode.connect(masterGain);
+            } else {
+                gainNode.connect(audioContext.destination);
+            }
+            
+            source.start(time);
+            return { source, gainNode };
+        }
+
+        // Drag and Drop functionality
+        function initDragAndDrop() {
+            const sampleItems = document.querySelectorAll('.sample-item');
+            const timelines = document.querySelectorAll('.timeline');
+
+            sampleItems.forEach(item => {
+                item.addEventListener('dragstart', (e) => {
+                    draggedSample = {
+                        name: e.target.dataset.sample,
+                        type: e.target.dataset.type
+                    };
+                    e.dataTransfer.effectAllowed = 'copy';
+                });
+
+                // Play sample on click
+                item.addEventListener('click', () => {
+                    if (audioContext.state === 'suspended') {
+                        audioContext.resume();
+                    }
+                    playSample(item.dataset.sample);
+                    showNotification(`Playing: ${item.querySelector('.sample-name').textContent}`);
+                });
+            });
+
+            timelines.forEach(timeline => {
+                timeline.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    timeline.classList.add('drag-over');
+                });
+
+                timeline.addEventListener('dragleave', (e) => {
+                    timeline.classList.remove('drag-over');
+                });
+
+                timeline.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    timeline.classList.remove('drag-over');
+                    
+                    if (!draggedSample) return;
+                    
+                    const rect = timeline.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const trackIndex = parseInt(timeline.dataset.track);
+                    
+                    addClipToTrack(draggedSample, x, trackIndex);
+                    draggedSample = null;
+                });
+            });
+        }
+
+        // Add clip to track
+        function addClipToTrack(sample, x, trackIndex) {
+            const timeline = document.querySelector(`[data-track="${trackIndex}"]`);
+            const clipWidth = Math.max(100, sampleDefinitions[sample.name].duration * 50);
+            
+            const clip = document.createElement('div');
+            clip.className = 'audio-clip';
+            clip.style.left = x + 'px';
+            clip.style.width = clipWidth + 'px';
+            clip.textContent = sample.name.toUpperCase();
+            clip.dataset.sample = sample.name;
+            clip.dataset.id = nextClipId++;
+            clip.dataset.startTime = (x / 50).toFixed(2); // 50px = 1 second
+            
+            // Make clip draggable within timeline
+            clip.draggable = true;
+            clip.addEventListener('dragstart', (e) => {
+                e.dataTransfer.effectAllowed = 'move';
+                selectedClip = clip;
+            });
+            
+            clip.addEventListener('click', (e) => {
+                e.stopPropagation();
+                selectClip(clip);
+                playSample(sample.name);
+            });
+            
+            clip.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                selectedClip = clip;
+                showContextMenu(e.clientX, e.clientY);
+            });
+            
+            timeline.appendChild(clip);
+            
+            // Add to track data
+            trackData[trackIndex].push({
+                id: clip.dataset.id,
+                sample: sample.name,
+                startTime: parseFloat(clip.dataset.startTime),
+                element: clip
+            });
+            
+            showNotification(`Added ${sample.name} to Track ${trackIndex + 1}`);
+        }
+
+        // Select clip
+        function selectClip(clip) {
+            document.querySelectorAll('.audio-clip').forEach(c => c.classList.remove('selected'));
+            clip.classList.add('selected');
+            selectedClip = clip;
+        }
+
+        // Transport controls
+        function initTransportControls() {
+            document.getElementById('playBtn').addEventListener('click', play);
+            document.getElementById('pauseBtn').addEventListener('click', pause);
+            document.getElementById('stopBtn').addEventListener('click', stop);
+            document.getElementById('recordBtn').addEventListener('click', toggleRecord);
+            document.getElementById('loopBtn').addEventListener('click', toggleLoop);
+            
+            // Tempo control
+            const tempoSlider = document.getElementById('tempoSlider');
+            tempoSlider.addEventListener('input', (e) => {
+                tempo = parseInt(e.target.value);
+                document.getElementById('tempoValue').textContent = tempo;
+            });
+        }
+
+        async function play() {
+            if (audioContext.state === 'suspended') {
+                await audioContext.resume();
+            }
+            
+            if (!isPlaying) {
+                isPlaying = true;
+                document.getElementById('playBtn').classList.add('active');
+                
+                // Start playback for all tracks
+                playAllTracks();
+                startVisualizer();
+                updatePlayhead();
+                
+                showNotification('Playback started');
+            }
+        }
+
+        function pause() {
+            if (isPlaying) {
+                isPlaying = false;
+                document.getElementById('playBtn').classList.remove('active');
+                showNotification('Playback paused');
+            }
+        }
+
+        function stop() {
+            isPlaying = false;
+            currentTime = 0;
+            document.getElementById('playBtn').classList.remove('active');
+            document.getElementById('playhead').style.left = '0px';
+            showNotification('Playback stopped');
+        }
+
+        function toggleLoop() {
+            isLooping = !isLooping;
+            const loopBtn = document.getElementById('loopBtn');
+            if (isLooping) {
+                loopBtn.classList.add('active');
+                showNotification('Loop enabled');
+            } else {
+                loopBtn.classList.remove('active');
+                showNotification('Loop disabled');
+            }
+        }
+
+        function toggleRecord() {
+            const recordBtn = document.getElementById('recordBtn');
+            recordBtn.classList.toggle('active');
+            recordBtn.classList.toggle('recording');
+            
+            if (recordBtn.classList.contains('active')) {
+                showNotification('Recording enabled');
+            } else {
+                showNotification('Recording disabled');
+            }
+        }
+
+        // Play all tracks
+        function playAllTracks() {
+            const currentAudioTime = audioContext.currentTime;
+            
+            trackData.forEach((track, trackIndex) => {
+                track.forEach(clip => {
+                    const playTime = currentAudioTime + clip.startTime;
+                    playSample(clip.sample, playTime, trackIndex);
+                });
+            });
+        }
+
+        // Effects controls
+        function initEffectsControls() {
+            document.getElementById('reverbAmount').addEventListener('input', (e) => {
+                const amount = e.target.value / 100;
+                // Reverb mix control would go here
+            });
+            
+            document.getElementById('delayAmount').addEventListener('input', (e) => {
+                const amount = e.target.value / 100;
+                const delayGain = audioContext.createGain();
+                delayGain.gain.value = amount;
+                delay.delayTime.value = 0.3;
+            });
+            
+            document.getElementById('filterFreq').addEventListener('input', (e) => {
+                const freq = parseFloat(e.target.value);
+                filter.type = 'lowpass';
+                filter.frequency.value = freq;
+                filter.Q.value = 1;
+            });
+            
+            document.getElementById('distortion').addEventListener('input', (e) => {
+                const amount = e.target.value / 100;
+                if (amount > 0) {
+                    const curve = new Float32Array(44100);
+                    for (let i = 0; i < 44100; i++) {
+                        const x = (i - 22050) / 22050;
+                        curve[i] = Math.tanh(x * amount * 10) * 0.5;
+                    }
+                    distortion.curve = curve;
+                } else {
+                    distortion.curve = null;
+                }
+            });
+        }
+
+        // Track controls
+        function initTrackControls() {
+            document.querySelectorAll('.track-btn[data-action="mute"]').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    btn.classList.toggle('active');
+                    const trackIndex = [...document.querySelectorAll('.track-container')].indexOf(btn.closest('.track-container'));
+                    showNotification(`Track ${trackIndex + 1} ${btn.classList.contains('active') ? 'muted' : 'unmuted'}`);
+                });
+            });
+            
+            document.querySelectorAll('.track-btn[data-action="solo"]').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    btn.classList.toggle('active');
+                    const trackIndex = [...document.querySelectorAll('.track-container')].indexOf(btn.closest('.track-container'));
+                    showNotification(`Track ${trackIndex + 1} ${btn.classList.contains('active') ? 'soloed' : 'unsoloed'}`);
+                });
+            });
+            
+            document.querySelectorAll('.volume-slider').forEach(slider => {
+                slider.addEventListener('input', (e) => {
+                    const value = e.target.value;
+                    const trackIndex = [...document.querySelectorAll('.track-container')].indexOf(slider.closest('.track-container'));
+                    slider.nextElementSibling.textContent = value + '%';
+                });
+            });
+        }
+
+        // Visualizer
+        function startVisualizer() {
+            if (!isPlaying) return;
+            
+            const dataArray = new Uint8Array(analyser.frequencyBinCount);
+            const freqBars = document.getElementById('frequencyBars');
+            const waveformBars = document.getElementById('waveformBars');
+            
+            function updateVisualizer() {
+                if (!isPlaying) return;
+                
+                analyser.getByteFrequencyData(dataArray);
+                
+                // Update frequency bars
+                const bars = freqBars.children;
+                for (let i = 0; i < Math.min(bars.length, dataArray.length / 4); i++) {
+                    const height = (dataArray[i * 4] / 255) * 40;
+                    bars[i].style.height = height + 'px';
+                }
+                
+                // Update waveform bars
+                const waveformBarsArray = waveformBars.children;
+                for (let i = 0; i < Math.min(waveformBarsArray.length, dataArray.length / 8); i++) {
+                    const height = (dataArray[i * 8] / 255) * 30;
+                    waveformBarsArray[i].style.height = height + 'px';
+                }
+                
+                requestAnimationFrame(updateVisualizer);
+            }
+            
+            updateVisualizer();
+        }
+
+        // Create visualizer bars
+        function createVisualizerBars() {
+            const freqBars = document.getElementById('frequencyBars');
+            const waveformBars = document.getElementById('waveformBars');
+            
+            // Create frequency bars
+            for (let i = 0; i < 32; i++) {
+                const bar = document.createElement('div');
+                bar.className = 'freq-bar';
+                bar.style.height = '5px';
+                freqBars.appendChild(bar);
+            }
+            
+            // Create waveform bars
+            for (let i = 0; i < 64; i++) {
+                const bar = document.createElement('div');
+                bar.className = 'waveform-bar';
+                bar.style.height = '5px';
+                waveformBars.appendChild(bar);
+            }
+        }
+
+        // Update playhead
+        function updatePlayhead() {
+            if (!isPlaying) return;
+            
+            const playhead = document.getElementById('playhead');
+            const pixelsPerSecond = 50;
+            
+            function animate() {
+                if (!isPlaying) return;
+                
+                currentTime += 1/60; // Approximate frame time
+                const position = currentTime * pixelsPerSecond;
+                
+                playhead.style.left = position + 'px';
+                
+                // Loop back to beginning if looping is enabled
+                if (isLooping && currentTime > 16) { // 16 seconds max
+                    currentTime = 0;
+                }
+                
+                requestAnimationFrame(animate);
+            }
+            
+            animate();
+        }
+
+        // Context menu
+        function showContextMenu(x, y) {
+            const contextMenu = document.getElementById('contextMenu');
+            contextMenu.style.display = 'block';
+            contextMenu.style.left = x + 'px';
+            contextMenu.style.top = y + 'px';
+        }
+
+        function hideContextMenu() {
+            document.getElementById('contextMenu').style.display = 'none';
+        }
+
+        // Context menu actions
+        function duplicateClip() {
+            if (!selectedClip) return;
+            
+            const trackIndex = parseInt(selectedClip.closest('.timeline').dataset.track);
+            const originalX = parseInt(selectedClip.style.left);
+            const clipWidth = parseInt(selectedClip.style.width);
+            
+            addClipToTrack({
+                name: selectedClip.dataset.sample,
+                type: 'duplicate'
+            }, originalX + clipWidth + 10, trackIndex);
+            
+            hideContextMenu();
+        }
+
+        function deleteClip() {
+            if (!selectedClip) return;
+            
+            const trackIndex = parseInt(selectedClip.closest('.timeline').dataset.track);
+            const clipId = selectedClip.dataset.id;
+            
+            // Remove from DOM
+            selectedClip.remove();
+            
+            // Remove from track data
+            trackData[trackIndex] = trackData[trackIndex].filter(clip => clip.id !== clipId);
+            
+            selectedClip = null;
+            hideContextMenu();
+            showNotification('Clip deleted');
+        }
+
+        function fadeIn() {
+            if (!selectedClip) return;
+            selectedClip.style.background = 'linear-gradient(90deg, transparent 0%, #00d4ff 30%, #0099cc 100%)';
+            hideContextMenu();
+            showNotification('Fade in applied');
+        }
+
+        function fadeOut() {
+            if (!selectedClip) return;
+            selectedClip.style.background = 'linear-gradient(90deg, #00d4ff 0%, #0099cc 70%, transparent 100%)';
+            hideContextMenu();
+            showNotification('Fade out applied');
+        }
+
+        function reverseClip() {
+            if (!selectedClip) return;
+            selectedClip.style.transform = 'scaleX(-1)';
+            hideContextMenu();
+            showNotification('Clip reversed');
+        }
+
+        // Project management
+        function clearAllTracks() {
+            if (confirm('Clear all tracks? This action cannot be undone.')) {
+                document.querySelectorAll('.timeline').forEach(timeline => {
+                    timeline.innerHTML = '';
+                });
+                trackData = [[], [], [], []];
+                showNotification('All tracks cleared');
+            }
+        }
+
+        function exportProject() {
+            showNotification('Export functionality would render all tracks to WAV file');
+            // In a real implementation, this would use OfflineAudioContext
+        }
+
+        function saveProject() {
+            const projectData = {
+                tempo,
+                tracks: trackData.map(track => 
+                    track.map(clip => ({
+                        sample: clip.sample,
+                        startTime: clip.startTime
+                    }))
+                )
+            };
+            
+            const dataStr = JSON.stringify(projectData, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            const url = URL.createObjectURL(dataBlob);
+            
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'remix-project.json';
+            link.click();
+            
+            showNotification('Project saved');
+        }
+
+        function loadProject() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const projectData = JSON.parse(e.target.result);
+                        
+                        // Clear current project
+                        clearAllTracks();
+                        
+                        // Load tempo
+                        tempo = projectData.tempo || 120;
+                        document.getElementById('tempoSlider').value = tempo;
+                        document.getElementById('tempoValue').textContent = tempo;
+                        
+                        // Load tracks
+                        projectData.tracks.forEach((track, trackIndex) => {
+                            track.forEach(clipData => {
+                                const x = clipData.startTime * 50; // Convert back to pixels
+                                addClipToTrack({name: clipData.sample}, x, trackIndex);
+                            });
+                        });
+                        
+                        showNotification('Project loaded successfully');
+                    } catch (error) {
+                        showNotification('Error loading project file');
+                    }
+                };
+                reader.readAsText(file);
+            };
+            
+            input.click();
+        }
+
+        // Create timeline ruler
+        function createTimelineRuler() {
+            const ruler = document.getElementById('timelineRuler');
+            const totalSeconds = 32;
+            const pixelsPerSecond = 50;
+            
+            for (let i = 0; i <= totalSeconds; i++) {
+                if (i % 4 === 0) {
+                    const mark = document.createElement('div');
+                    mark.className = 'ruler-mark';
+                    mark.style.left = (i * pixelsPerSecond) + 'px';
+                    ruler.appendChild(mark);
+                    
+                    const label = document.createElement('div');
+                    label.className = 'ruler-label';
+                    label.style.left = (i * pixelsPerSecond + 5) + 'px';
+                    label.textContent = `${Math.floor(i/4)}:${(i%4)}0`;
+                    ruler.appendChild(label);
+                }
+            }
+        }
+
+        // Show notification
+        function showNotification(message) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        // Initialize everything
+        document.addEventListener('DOMContentLoaded', async () => {
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            loadingOverlay.style.display = 'flex';
+            
+            try {
+                await initAudio();
+                loadSamples();
+                initDragAndDrop();
+                initTransportControls();
+                initEffectsControls();
+                initTrackControls();
+                createVisualizerBars();
+                createTimelineRuler();
+                
+                // Hide context menu on click outside
+                document.addEventListener('click', hideContextMenu);
+                
+                // Prevent context menu on timeline
+                document.querySelectorAll('.timeline').forEach(timeline => {
+                    timeline.addEventListener('contextmenu', e => e.preventDefault());
+                });
+                
+                showNotification('Remix Studio Pro ready!');
+            } catch (error) {
+                console.error('Initialization error:', error);
+                showNotification('Initialization failed. Please refresh and try again.');
+            } finally {
+                loadingOverlay.style.display = 'none';
+            }
+        });
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            // Adjust timeline widths or other responsive elements
+        });
+    </script>
+</body>
+</html>
